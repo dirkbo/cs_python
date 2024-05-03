@@ -1,6 +1,15 @@
+import os
+import sys
+import inspect
 import datetime
 
 import PySimpleGUI as sg
+
+# To work from exapmples folder, parentfolder is added to path
+currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+parentdir = os.path.dirname(os.path.dirname(currentdir))
+sys.path.insert(0, parentdir)
+
 import cryptshare.Client as CryptshareClient
 import cryptshare.NotificationMessage as NotificationMessage
 import cryptshare.SecurityMode as SecurityMode
@@ -8,9 +17,9 @@ import cryptshare.Sender as Sender
 import cryptshare.TransferSettings as Settings
 
 # Please change these parameters accordingly to your setup
-cryptshare_server_url = "http://localhost"
+cryptshare_server_url = os.getenv("CRYPTSHARE_SERVER_URL", "https://beta.cryptshare.com")
 transfer_password = "Thunderstruck!"
-origin = "https://localhost"
+origin = os.getenv("CRYPTSHARE_CORS_ORIGIN", "https://localhost")
 
 
 def ui(cryptshare_client: CryptshareClient):
@@ -260,10 +269,10 @@ def main():
         cryptshare_client.verify_code(sg.popup_get_text("code").strip())
         cryptshare_client.is_verified()
     #  Example code for API functionality
-    password_rules = cryptshare_client.get_password_rules()
-    password_response = cryptshare_client.get_password()
-    passwort_validated_response = cryptshare_client.validate_password("happyday123asd")
-    policy_response = cryptshare_client.get_policy(["python@domain.com"])
+    # password_rules = cryptshare_client.get_password_rules()
+    # password_response = cryptshare_client.get_password()
+    # passwort_validated_response = cryptshare_client.validate_password("happyday123asd")
+    # policy_response = cryptshare_client.get_policy(["python@domain.com"])
     #  Transfer definition
     sender = Sender.Sender("REST by Python", +4976138913100)
     settings = Settings.TransferSettings(
@@ -290,12 +299,12 @@ def main():
         transfer.upload_file(file)
     pre_transfer_info = transfer.get_transfer_settings()
     if display_transfer_information(transfer.get_transfer_settings()):
-        r = transfer.send_transfer()
+        transfer.send_transfer()
     post_transfer_info = transfer.get_transfer_status()
     cryptshare_client.write_client_store()
 
     #  Create a Download object to perform downloads on.
-    download = cryptshare_client.download("pq7KbAIvL9", "Hb$uciWr")
+    cryptshare_client.download("pq7KbAIvL9", "Hb$uciWr")
 
     print(pre_transfer_info)
     print(post_transfer_info)

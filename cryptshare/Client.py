@@ -89,7 +89,7 @@ class Client(ApiRequestHandler):
                 headers=self.header.general,
             )
         )
-        print("CORS is active for origin " + origin + ": " + str(r.get("active")))
+        print(f"CORS is active for origin {origin}: {r.get('active')}")
 
     def exists_client_id(self) -> bool:
         if "X-CS-ClientId" in self.header.general:
@@ -133,8 +133,8 @@ class Client(ApiRequestHandler):
             with open(self.client_store_path, "r") as json_file:
                 try:
                     self.store = json.load(json_file)
-                except:
-                    print("Failed to read store")
+                except Exception as e:
+                    print(f"Failed to read store: {e}")
             if "X-CS-ClientId" in self.store:
                 self.header.set_client_id(self.store.get("X-CS-ClientId"))
         except IOError:

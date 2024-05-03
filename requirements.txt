@@ -1,4 +1,1 @@
-black
-isort
 requests
-tqdm
