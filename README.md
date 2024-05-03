@@ -3,14 +3,29 @@
 Create virtual env 
 `python -m venv .venv`
 
-Change to virtualenc
+Change to virtualenv
 `source .venv/bin/activate` 
 
 Install requirements
 `pip install -r requirements.txt`
 
-Run in interactive mode
-`python example.py`
+## Run shell examples
+install extra requirements
+`pip install -r examples/shell_example/extra_requirements.txt`
+
+Run shell example in interactive mode
+`python examples/shell_example/example.py`
+
+## Run GUI example
+install extra requirements
+`pip install -r examples/gui_example/extra_requirements.txt`
+
+Run GUI example
+`python examples/gui_example/gui.py`
+
+## Development
+Install also development requirements
+`pip install -r dev_requirements.txt`
 
 # Configuration
 

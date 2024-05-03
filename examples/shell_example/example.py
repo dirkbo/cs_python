@@ -1,5 +1,12 @@
 import argparse
 import os
+import sys
+import inspect
+
+# To work from exapmples folder, parentfolder is added to path
+currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+parentdir = os.path.dirname(os.path.dirname(currentdir))
+sys.path.insert(0, parentdir)
 
 import requests
 from tqdm import tqdm
