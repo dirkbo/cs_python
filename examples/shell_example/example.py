@@ -99,6 +99,7 @@ def send_transfer(
 
     #  Reads existing verifications from the 'store' file if any
     cryptshare_client.read_client_store()
+    cryptshare_client.set_email(sender_email)
 
     #  request client id from server if no client id exists
     #  Both branches also react on the REST API not licensed
@@ -106,15 +107,18 @@ def send_transfer(
         cryptshare_client.request_client_id()
     else:
         # Check CORS state for a specific origin.
-        cryptshare_client.cors(origin)
+        #cryptshare_client.cors(origin)
+        # ToDo: After cors check, client verification from store is not working anymore
+        pass
 
-    cryptshare_client.set_email(sender_email)
     # request verification for sender if not verified already
-    if cryptshare_client.is_verified() is False:
+    if cryptshare_client.is_verified() is True:
+        print(f"Sender {sender_email} is verified.")
+    else:
         cryptshare_client.request_code()
         verification_code = input(f"Please enter the verification code sent to your email address ({sender_email}):\n")
         cryptshare_client.verify_code(verification_code.strip())
-        if cryptshare_client.is_verified() is False:
+        if cryptshare_client.is_verified() is not True:
             print("Verification failed.")
             return
 
@@ -147,7 +151,6 @@ def send_transfer(
     settings = TransferSettings(
         sender,
         notification_message=notification,
-        subject=subject,
         send_download_notifications=True,
         security_mode=transfer_security_mode,
         expiration_date=expiration_date.astimezone().isoformat(),
@@ -170,8 +173,7 @@ def send_transfer(
     transfer.send_transfer()
     # post_transfer_info = transfer.get_transfer_status()
     # print(f" Post-Transfer info: \n{post_transfer_info}")
-    # cryptshare_client.write_client_store()
-    # ToDo: write client store to file results in an error when loading
+    cryptshare_client.write_client_store()
     print("Transfer sent successfully.")
 
 
@@ -200,7 +202,7 @@ def send_transfer_interactive(
         "Which files do you want to send? (separate multiple files with a space, default=example_files/test_file.txt)\n"
     )
     if files == "":
-        files = "example_files/test_file.txt"
+        files = "examples/example_files/test_file.txt"
     recipients = input("Which email addresses do you want to send to? (separate multiple addresses with a space)\n")
     cc = input("Which email addresses do you want to cc? (separate multiple addresses with a space)\n")
     bcc = input("Which email addresses do you want to bcc? (separate multiple addresses with a space)\n")

@@ -8,4 +8,5 @@ venv2
 *.sqlite3
 vmanage.py
 credentials.py
+client_store.json
 transfers
