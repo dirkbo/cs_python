@@ -22,6 +22,8 @@ def parse_args():
     parser.add_argument("-p", "--password", help="Password of the Transfer to RECEIVE", required=False)
     # Send a Transfer
     parser.add_argument("-e", "--email", help="Email address to SEND from.")
+    parser.add_argument("-n", "--name", help="Name of the Sender to SEND from.")
+    parser.add_argument("--phone", help="Phone number of the sender to SEND from.")
     parser.add_argument("-f", "--file", help="Path of a file or a folder of files to SEND.", action="append")
     parser.add_argument("--to", help="A Recipient email address to SEND to.", action="append")
     parser.add_argument("--cc", help="A CC email address(es) to SEND to.", action="append")
@@ -64,6 +66,8 @@ def send_transfer(
     origin,
     send_server,
     sender_email,
+    sender_name,
+    sender_phone,
     transfer_password,
     expiration_date,
     files,
@@ -148,7 +152,7 @@ def send_transfer(
         return
 
     #  Transfer definition
-    sender = CryptshareSender("REST by Python", +4976138913100)
+    sender = CryptshareSender(sender_name, sender_phone)
     notification = NotificationMessage(message, subject)
     settings = TransferSettings(
         sender,
@@ -179,13 +183,23 @@ def send_transfer(
     print("Transfer sent successfully.")
 
 
-def send_transfer_interactive(default_server_url, default_sender_email, origin):
+def send_transfer_interactive(
+    default_server_url, default_sender_email, default_sender_name, default_sender_phone, origin
+):
     send_server = input(f"Which server do you want to use to send a Transfer? (default={default_server_url})\n")
     if send_server == "":
         send_server = default_server_url
     print(f"Sending transfer using {send_server}")
 
     sender_email = input(f"From which email do you want to send transfers? (default={default_sender_email})\n")
+    if sender_email == "":
+        sender_email = default_sender_email
+    sender_name = input(f"What is the name of the sender? (default={default_sender_name})\n")
+    if sender_name == "":
+        sender_name = default_sender_name
+    sender_phone = input(f"What is the phone number of the sender? (default={default_sender_phone})\n")
+    if sender_phone == "":
+        sender_phone = default_sender_phone
     transfer_password = input("What is the password for the transfer?\n")
     expiration_date = "2028-10-09T11:51:46+02:00"
     files = input(
@@ -203,6 +217,8 @@ def send_transfer_interactive(default_server_url, default_sender_email, origin):
         origin,
         send_server,
         sender_email,
+        sender_name,
+        sender_phone,
         transfer_password,
         expiration_date,
         files,
@@ -272,11 +288,17 @@ def main():
     inputs = parse_args()
     default_server_url = os.getenv("CRYPTSHARE_SERVER", "https://beta.cryptshare.com")
     default_sender_email = os.getenv("CRYPTSHARE_SENDER_EMAIL", None)
+    default_sender_name = os.getenv("CRYPTSHARE_SENDER_NAME", "REST-API Sender")
+    default_sender_phone = os.getenv("CRYPTSHARE_SENDER_PHONE", "0")
     origin = os.getenv("CRYPTSHARE_CORS_ORIGIN", "https://localhost")
     if inputs.server:
         default_server_url = inputs.server
     if inputs.email:
         default_sender_email = inputs.email
+    if inputs.name:
+        default_sender_name = inputs.name
+    if inputs.phone:
+        default_sender_phone = inputs.phone
     if inputs.mode == "send":
         new_transfer_password = inputs.password
 
@@ -284,6 +306,8 @@ def main():
             origin,
             default_server_url,
             default_sender_email,
+            default_sender_name,
+            default_sender_phone,
             new_transfer_password,
             "2028-10-09T11:51:46+02:00",
             inputs.file,
@@ -303,7 +327,9 @@ def main():
     while True:
         mode = interactive_user_choice()
         if mode == "send":
-            send_transfer_interactive(default_server_url, default_sender_email, origin)
+            send_transfer_interactive(
+                default_server_url, default_sender_email, default_sender_name, default_sender_phone, origin
+            )
         elif mode == "receive":
             download_transfer_interactive(default_server_url, origin)
         if mode is False:
