@@ -9,6 +9,7 @@ from cryptshare.NotificationMessage import NotificationMessage
 from cryptshare.SecurityMode import SecurityMode
 from cryptshare.Sender import Sender as CryptshareSender
 from cryptshare.TransferSettings import TransferSettings
+from cryptshare.helpers import clean_string_list, clean_expiration
 
 
 def parse_args():
@@ -30,6 +31,7 @@ def parse_args():
     parser.add_argument("--bcc", help="A BCC email address(es) to SEND to.", action="append")
     parser.add_argument("--subject", help="Subject of the Transfer to SEND.")
     parser.add_argument("--message", help="Custom notification Message of the Transfer to SEND.")
+    parser.add_argument("--expiration", help="Expiration of the Transfer to SEND.")
     args = parser.parse_args()
     return args
 
@@ -39,27 +41,6 @@ def interactive_user_choice():
     if mode == "cancel" or mode == "abort" or mode == "exit":
         return False
     return mode
-
-
-def clean_string_list(string_list):
-    """
-    :param string_list: A space seperated list of values in a string
-    :return: a list of strings
-    """
-    if string_list is None or string_list == "":
-        return []
-    try:
-        string_list = string_list.split(" ")
-    except AttributeError:
-        pass
-    except Exception as e:
-        print(type(e))
-        print(e)
-    if type(string_list) is not list:
-        string_list = [string_list]
-    # remove duplicates
-    string_list = list(dict.fromkeys(string_list))
-    return string_list
 
 
 def send_transfer(
@@ -85,6 +66,7 @@ def send_transfer(
     recipients = clean_string_list(recipients)
     cc = clean_string_list(cc)
     bcc = clean_string_list(bcc)
+    expiration_date = clean_expiration(expiration_date)
 
     transformed_recipients = []
     for recipient in recipients:
@@ -154,11 +136,14 @@ def send_transfer(
     #  Transfer definition
     sender = CryptshareSender(sender_name, sender_phone)
     notification = NotificationMessage(message, subject)
+    subject = subject if subject != "" else None
     settings = TransferSettings(
         sender,
         notification_message=notification,
+        subject=subject,
         send_download_notifications=True,
         security_mode=transfer_security_mode,
+        expiration_date=expiration_date.astimezone().isoformat(),
     )
 
     #  Start of transfer on server side
@@ -200,8 +185,10 @@ def send_transfer_interactive(
     sender_phone = input(f"What is the phone number of the sender? (default={default_sender_phone})\n")
     if sender_phone == "":
         sender_phone = default_sender_phone
+    transfer_expiration = input("When should the transfer expire? (default=2d)\n")
+    if transfer_expiration == "":
+        transfer_expiration = "2d"
     transfer_password = input("What is the password for the transfer?\n")
-    expiration_date = "2028-10-09T11:51:46+02:00"
     files = input(
         "Which files do you want to send? (separate multiple files with a space, default=example_files/test_file.txt)\n"
     )
@@ -220,7 +207,7 @@ def send_transfer_interactive(
         sender_name,
         sender_phone,
         transfer_password,
-        expiration_date,
+        transfer_expiration,
         files,
         recipients,
         cc=cc,
@@ -309,7 +296,7 @@ def main():
             default_sender_name,
             default_sender_phone,
             new_transfer_password,
-            "2028-10-09T11:51:46+02:00",
+            inputs.expiration,
             inputs.file,
             inputs.to,
             cc=inputs.cc,
