@@ -44,7 +44,7 @@ def clean_string_list(string_list):
     :param string_list: A space seperated list of values in a string
     :return: a list of strings
     """
-    if string_list is None:
+    if string_list is None or string_list == "":
         return []
     try:
         string_list = string_list.split(" ")
