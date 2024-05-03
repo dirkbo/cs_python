@@ -126,9 +126,11 @@ def send_transfer(
             return
 
     # ToDo: show password rules to user, when asking for password
-    if transfer_password == "":
-        transfer_password = cryptshare_client.get_password()
-        print(f"Generated Password to receive Files: {transfer_password.get('password')}")
+    transfer_security_mode = SecurityMode(password=transfer_password, mode="MANUAL")
+    if transfer_password == "" or transfer_password is None:
+        transfer_password = cryptshare_client.get_password().get("password")
+        print(f"Generated Password to receive Files: {transfer_password}")
+        transfer_security_mode = SecurityMode(password=transfer_password, mode="GENERATED")
     else:
         passwort_validated_response = cryptshare_client.validate_password(transfer_password)
         valid_password = passwort_validated_response.get("valid")
@@ -152,7 +154,7 @@ def send_transfer(
         sender,
         notification_message=notification,
         send_download_notifications=True,
-        security_mode=SecurityMode(password=transfer_password, mode="MANUAL"),
+        security_mode=transfer_security_mode,
     )
 
     #  Start of transfer on server side
