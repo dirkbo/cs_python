@@ -1,6 +1,7 @@
 import datetime
 
 import PySimpleGUI as sg
+
 import cryptshare.Client as CryptshareClient
 import cryptshare.NotificationMessage as NotificationMessage
 import cryptshare.SecurityMode as SecurityMode

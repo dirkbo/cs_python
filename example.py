@@ -1,8 +1,14 @@
-from cryptshare.Client import Client as CryptshareClient
-from tqdm import tqdm
-import requests
-import os
 import argparse
+import os
+
+import requests
+from tqdm import tqdm
+
+from cryptshare.Client import Client as CryptshareClient
+from cryptshare.NotificationMessage import NotificationMessage
+from cryptshare.SecurityMode import SecurityMode
+from cryptshare.Sender import Sender as CryptshareSender
+from cryptshare.TransferSettings import TransferSettings
 
 
 def parse_args():
@@ -12,10 +18,16 @@ def parse_args():
     )
     parser.add_argument("-s", "--server", help="Cryptshare Server URL", required=False)
     # Receive a Transfer
-    parser.add_argument("-t", "--transfer", help="Tracking ID of the Transfer", required=False)
-    parser.add_argument("-p", "--password", help="Password of the Transfer", required=False)
+    parser.add_argument("-t", "--transfer", help="Tracking ID of the Transfer to RECEIVE", required=False)
+    parser.add_argument("-p", "--password", help="Password of the Transfer to RECEIVE", required=False)
     # Send a Transfer
-    # ToDO: Implement sending a Transfer
+    parser.add_argument("-e", "--email", help="Email address to SEND from.")
+    parser.add_argument("-f", "--file", help="Path of a file or a folder of files to SEND.", action="append")
+    parser.add_argument("--to", help="A Recipient email address to SEND to.", action="append")
+    parser.add_argument("--cc", help="A CC email address(es) to SEND to.", action="append")
+    parser.add_argument("--bcc", help="A BCC email address(es) to SEND to.", action="append")
+    parser.add_argument("--subject", help="Subject of the Transfer to SEND.")
+    parser.add_argument("--message", help="Custom notification Message of the Transfer to SEND.")
     args = parser.parse_args()
     return args
 
@@ -27,20 +39,193 @@ def interactive_user_choice():
     return mode
 
 
-def download_transfer(origin, dl_server, recipient_transfer_id, password, save_path):
-    cs = CryptshareClient(dl_server)
+def clean_string_list(string_list):
+    """
+    :param string_list: A space seperated list of values in a string
+    :return: a list of strings
+    """
+    if string_list is None:
+        return []
+    try:
+        string_list = string_list.split(" ")
+    except AttributeError:
+        pass
+    except Exception as e:
+        print(type(e))
+        print(e)
+    if type(string_list) is not list:
+        string_list = [string_list]
+    # remove duplicates
+    string_list = list(dict.fromkeys(string_list))
+    return string_list
+
+
+def send_transfer(
+    origin,
+    send_server,
+    sender_email,
+    transfer_password,
+    expiration_date,
+    files,
+    recipients,
+    cc="",
+    bcc="",
+    subject="",
+    message="",
+    cryptshare_client=None,
+):
+    if cryptshare_client is None:
+        cryptshare_client = CryptshareClient(send_server)
+
+    files = clean_string_list(files)
+    recipients = clean_string_list(recipients)
+    cc = clean_string_list(cc)
+    bcc = clean_string_list(bcc)
+
+    transformed_recipients = []
+    for recipient in recipients:
+        transformed_recipients.append({"mail": recipient})
+    transformed_cc_recipients = []
+    for recipient in cc:
+        transformed_cc_recipients.append({"mail": recipient})
+    transformed_bcc_recipients = []
+    for recipient in bcc:
+        transformed_bcc_recipients.append({"mail": recipient})
+
+    all_recipients = []
+    all_recipients.extend(recipients)
+    all_recipients.extend(cc)
+    all_recipients.extend(bcc)
+    # All recipients list needed for policy request
+
+    print(f"Sending Transfer from {sender_email} using {send_server}")
+    print(f" To Recipients: {recipients}")
+    print(f" CC Recipients: {cc}")
+    print(f" BCC Recipients: {bcc}")
+    print(f" Files: {files}")
+
     #  Reads existing verifications from the 'store' file if any
-    cs.read_client_store()
+    cryptshare_client.read_client_store()
 
     #  request client id from server if no client id exists
     #  Both branches also react on the REST API not licensed
-    if cs.exists_client_id() is False:
-        cs.request_client_id()
+    if cryptshare_client.exists_client_id() is False:
+        cryptshare_client.request_client_id()
     else:
         # Check CORS state for a specific origin.
-        cs.cors(origin)
+        cryptshare_client.cors(origin)
 
-    download = cs.download(recipient_transfer_id, password)
+    cryptshare_client.set_email(sender_email)
+    # request verification for sender if not verified already
+    if cryptshare_client.is_verified() is False:
+        cryptshare_client.request_code()
+        verification_code = input(f"Please enter the verification code sent to your email address ({sender_email}):\n")
+        cryptshare_client.verify_code(verification_code.strip())
+        if cryptshare_client.is_verified() is False:
+            print("Verification failed.")
+            return
+
+    # ToDo: show password rules to user, when asking for password
+    if transfer_password == "":
+        transfer_password = cryptshare_client.get_password()
+        print(f"Generated Password to receive Files: {transfer_password.get('password')}")
+    else:
+        passwort_validated_response = cryptshare_client.validate_password(transfer_password)
+        valid_password = passwort_validated_response.get("valid")
+        if not valid_password:
+            print("Passwort is not valid.")
+            password_rules = cryptshare_client.get_password_rules()
+            print(f"Passwort rules:\n{password_rules}")
+            return
+
+    policy_response = cryptshare_client.get_policy(all_recipients)
+    valid_policy = policy_response.get("allowed")
+    if not valid_policy:
+        print("Policy not valid.")
+        print(f"Policy response: {policy_response}")
+        return
+
+    #  Transfer definition
+    sender = CryptshareSender("REST by Python", +4976138913100)
+    notification = NotificationMessage(message, subject)
+    settings = TransferSettings(
+        sender,
+        notification_message=notification,
+        send_download_notifications=True,
+        security_mode=SecurityMode(password=transfer_password, mode="MANUAL"),
+    )
+
+    #  Start of transfer on server side
+    transfer = cryptshare_client.start_transfer(
+        {
+            "bcc": transformed_bcc_recipients,
+            "cc": transformed_cc_recipients,
+            "to": transformed_recipients,
+        },
+        settings,
+    )
+    for file in files:
+        transfer.upload_file(file)
+
+    # pre_transfer_info = transfer.get_transfer_settings()
+    # print(f" Pre-Transfer info: \n{pre_transfer_info}")
+    transfer.send_transfer()
+    # post_transfer_info = transfer.get_transfer_status()
+    # print(f" Post-Transfer info: \n{post_transfer_info}")
+    # cryptshare_client.write_client_store()
+    # ToDo: write client store to file results in an error when loading
+    print("Transfer sent successfully.")
+
+
+def send_transfer_interactive(default_server_url, default_sender_email, origin):
+    send_server = input(f"Which server do you want to use to send a Transfer? (default={default_server_url})\n")
+    if send_server == "":
+        send_server = default_server_url
+    print(f"Sending transfer using {send_server}")
+
+    sender_email = input(f"From which email do you want to send transfers? (default={default_sender_email})\n")
+    transfer_password = input("What is the password for the transfer?\n")
+    expiration_date = "2028-10-09T11:51:46+02:00"
+    files = input(
+        "Which files do you want to send? (separate multiple files with a space, default=example_files/test_file.txt)\n"
+    )
+    if files == "":
+        files = "example_files/test_file.txt"
+    recipients = input("Which email addresses do you want to send to? (separate multiple addresses with a space)\n")
+    cc = input("Which email addresses do you want to cc? (separate multiple addresses with a space)\n")
+    bcc = input("Which email addresses do you want to bcc? (separate multiple addresses with a space)\n")
+    subject = input("What is the subject of the transfer? blank=default Cryptshare subject\n")
+    message = input("What is the Notification message of the transfer? blank=default Cryptshare Notification message\n")
+
+    send_transfer(
+        origin,
+        send_server,
+        sender_email,
+        transfer_password,
+        expiration_date,
+        files,
+        recipients,
+        cc=cc,
+        bcc=bcc,
+        subject=subject,
+        message=message,
+    )
+
+
+def download_transfer(origin, dl_server, recipient_transfer_id, password, save_path):
+    cryptshare_client = CryptshareClient(dl_server)
+    #  Reads existing verifications from the 'store' file if any
+    cryptshare_client.read_client_store()
+
+    #  request client id from server if no client id exists
+    #  Both branches also react on the REST API not licensed
+    if cryptshare_client.exists_client_id() is False:
+        cryptshare_client.request_client_id()
+    else:
+        # Check CORS state for a specific origin.
+        cryptshare_client.cors(origin)
+
+    download = cryptshare_client.download(recipient_transfer_id, password)
     files_info = download.download_files_info()
     directory = os.path.join("transfers", save_path)
     print(f"Downloading Transfer {recipient_transfer_id} from {dl_server} to {directory}...")
@@ -64,15 +249,48 @@ def download_transfer(origin, dl_server, recipient_transfer_id, password, save_p
     print(f"Downloaded Transfer {recipient_transfer_id} to {directory} complete.")
 
 
+def download_transfer_interactive(default_server_url, origin):
+    dl_server = input(f"From which server do you want to download a Transfer? (default={default_server_url}) \n")
+    if dl_server == "":
+        dl_server = default_server_url
+    print(f"Downloading from {dl_server}")
+
+    recipient_transfer_id = input(f"Which transfer ID did you receive from {default_server_url}?\n")
+    password = input(f"What is the PASSWORD for transfer {recipient_transfer_id}?\n")
+
+    default_path = recipient_transfer_id
+    save_path = default_path
+    user_path = input(f"Where do you want to save the downloaded files? (default=transfers/{default_path})")
+    if user_path != "":
+        save_path = user_path
+    download_transfer(origin, dl_server, recipient_transfer_id, password, save_path)
+
+
 def main():
     inputs = parse_args()
     default_server_url = os.getenv("CRYPTSHARE_SERVER", "https://beta.cryptshare.com")
+    default_sender_email = os.getenv("CRYPTSHARE_SENDER_EMAIL", None)
     origin = os.getenv("CRYPTSHARE_CORS_ORIGIN", "https://localhost")
     if inputs.server:
         default_server_url = inputs.server
-        print("Using server: " + default_server_url)
+    if inputs.email:
+        default_sender_email = inputs.email
     if inputs.mode == "send":
-        print("Not supported yet)")
+        new_transfer_password = inputs.password
+
+        send_transfer(
+            origin,
+            default_server_url,
+            default_sender_email,
+            new_transfer_password,
+            "2028-10-09T11:51:46+02:00",
+            inputs.file,
+            inputs.to,
+            cc=inputs.cc,
+            bcc=inputs.bcc,
+            subject=inputs.subject,
+            message=inputs.message,
+        )
         return
     elif inputs.mode == "receive":
         recipient_transfer_id = inputs.transfer
@@ -83,30 +301,9 @@ def main():
     while True:
         mode = interactive_user_choice()
         if mode == "send":
-            sender_email = input("From which email do you want to send transfers?\n")
-
-            print(f"You received an E-Mail containing a verification Code at {sender_email}")
-            user_verification_code = input("Enter verification code:\n")
-            # cs.get_verification_token(user_verification_code)
-
-            print("ToDO: verifying user")
+            send_transfer_interactive(default_server_url, default_sender_email, origin)
         elif mode == "receive":
-            dl_server = input(
-                f"From which server do you want to download a Transfer? (default={default_server_url}) \n"
-            )
-            if dl_server == "":
-                dl_server = default_server_url
-            print(f"Downloading from {dl_server}")
-
-            recipient_transfer_id = input(f"Which transfer ID did you receive from {default_server_url}?\n")
-            password = input(f"What is the PASSWORD for transfer {recipient_transfer_id}?\n")
-
-            default_path = recipient_transfer_id
-            save_path = default_path
-            user_path = input(f"Where do you want to save the downloaded files? (default=transfers/{default_path})")
-            if user_path != "":
-                save_path = user_path
-            download_transfer(origin, dl_server, recipient_transfer_id, password, save_path)
+            download_transfer_interactive(default_server_url, origin)
         if mode is False:
             break
 

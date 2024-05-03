@@ -1,7 +1,7 @@
 venv
 .venv
 venv3
-*/migrations/0*_*.py
+store
 venv2
 .idea
 *.pyc

@@ -16,19 +16,11 @@ class ApiRequestHandler(object):
         if resp.status_code == 403:
             content = json.loads(resp.content)
             if content.get("errorCode") == 3001:
-                err_msg = (
-                    "403 Error \n"
-                    + str(content.get("errorCode"))
-                    + "\n"
-                    + content.get("errorMessage")
-                    + "\nPlease install a valid Cryptshare license on this Cryptshare server where the REST API is licensed."
-                )
+                err_msg = f"403 Error \n{content.get('errorCode')}\n{content.get('errorMessage')}\nPlease install a valid Cryptshare license on this Cryptshare server where the REST API is licensed."
                 raise HTTPError(err_msg)
-            err_msg = "403 Error \n" + str(content.get("errorCode")) + "\n" + content.get("errorMessage")
+            err_msg = f"403 Error \n{content.get('errorCode')}\n{content.get('errorMessage')}"
             raise HTTPError(err_msg)
         if resp.status_code in [400, 401, 404, 406, 409, 410, 429, 500, 501]:
             content = json.loads(resp.content)
-            err_msg = (
-                str(resp.status_code) + " Error\n" + str(content.get("errorCode")) + "\n" + content.get("errorMessage")
-            )
+            err_msg = f"{resp.status_code} Error \n{content.get('errorCode')}\n{content.get('errorMessage')}"
             raise HTTPError(err_msg)
