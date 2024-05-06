@@ -146,8 +146,8 @@ def send_transfer(
 
     #  Transfer definition
     sender = CryptshareSender(sender_name, sender_phone)
-    notification = NotificationMessage(message, subject)
     subject = subject if subject != "" else None
+    notification = NotificationMessage(message, subject)
     settings = TransferSettings(
         sender,
         notification_message=notification,
