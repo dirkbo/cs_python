@@ -1,16 +1,20 @@
 # Getting started
 
 Create virtual env 
+
 `python -m venv .venv`
 
 Change to virtualenv
+
 `source .venv/bin/activate` 
 
 Install requirements
+
 `pip install -r requirements.txt`
 
 ## Development
 Install also development requirements
+
 `pip install -r dev_requirements.txt`
 
 # Configuration
@@ -51,9 +55,13 @@ install additional requirements
 
 `python examples/shell_example/example.py -m send -e test@example.com -f example_files/test_file.txt -f example_files/file-example_PDF_1MB.pdf --bcc test1@example.com --bcc 'test2@example.com' -p 'test!Test1'`
 
-## receive transfer from commandline
+### receive transfer from commandline
 
 `python examples/shell_example/example.py -m receive -t 5xVluOW7NR -p 'test!Test1'`
+
+### start interactive transfer from commandline
+
+`python examples/shell_example/example.py`
 
 ## GUI examples
 
@@ -66,4 +74,5 @@ install additional requirements
 `pip install -r examples/gui_example/requirements.txt`
 
 Run GUI example
+
 `python examples/gui_example/gui.py`
