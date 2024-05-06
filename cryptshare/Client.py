@@ -17,7 +17,7 @@ class Client(ApiRequestHandler):
     path1 = "/users/"
     store = {}
 
-    def __init__(self, server, client_store_path="store", ssl_verify=True):
+    def __init__(self, server, client_store_path="client_store.json", ssl_verify=True):
         self.url = server + "/api"
         self.client_store_path = client_store_path
         self.ssl_verify = ssl_verify
@@ -71,9 +71,12 @@ class Client(ApiRequestHandler):
         return True
 
     def is_verified(self):
+        path = self.url + self.path1 + self.email_address + "/verification"
+        # print(f"{path} - {self.ssl_verify} - {self.header.general}")
+        # ToDO: Fix problem when cors header is present
         r = self._handle_response(
             requests.get(
-                self.url + self.path1 + self.email_address + "/verification",
+                path,
                 verify=self.ssl_verify,
                 headers=self.header.general,
             )
