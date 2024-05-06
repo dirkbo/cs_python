@@ -9,20 +9,6 @@ Change to virtualenv
 Install requirements
 `pip install -r requirements.txt`
 
-## Run shell examples
-install extra requirements
-`pip install -r examples/shell_example/extra_requirements.txt`
-
-Run shell example in interactive mode
-`python examples/shell_example/example.py`
-
-## Run GUI example
-install extra requirements
-`pip install -r examples/gui_example/extra_requirements.txt`
-
-Run GUI example
-`python examples/gui_example/gui.py`
-
 ## Development
 Install also development requirements
 `pip install -r dev_requirements.txt`
@@ -53,10 +39,31 @@ Default Value is "https://localhost". When configured, the origin will be used a
 
 # Examples
 
-## send files from commandline
+## Shell examples
 
-`python example.py -m send -e test@example.com -f example_files/test_file.txt -f example_files/file-example_PDF_1MB.pdf --bcc test1@example.com --bcc 'test2@example.com' -p 'test!Test1'`
+### Run shell examples
+
+install additional requirements
+
+`pip install -r examples/shell_example/requirements.txt`
+
+### send files from commandline
+
+`python examples/shell_example/example.py -m send -e test@example.com -f example_files/test_file.txt -f example_files/file-example_PDF_1MB.pdf --bcc test1@example.com --bcc 'test2@example.com' -p 'test!Test1'`
 
 ## receive transfer from commandline
 
-`python example.py -m receive -t 5xVluOW7NR -p 'test!Test1'`
+`python examples/shell_example/example.py -m receive -t 5xVluOW7NR -p 'test!Test1'`
+
+## GUI examples
+
+Requires PySimpleGUI
+
+### Run GUI example
+
+install additional requirements
+
+`pip install -r examples/gui_example/requirements.txt`
+
+Run GUI example
+`python examples/gui_example/gui.py`

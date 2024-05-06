@@ -107,7 +107,7 @@ def send_transfer(
         cryptshare_client.request_client_id()
     else:
         # Check CORS state for a specific origin.
-        #cryptshare_client.cors(origin)
+        # cryptshare_client.cors(origin)
         # ToDo: After cors check, client verification from store is not working anymore
         pass
 
@@ -197,7 +197,7 @@ def send_transfer_interactive(
     transfer_expiration = input("When should the transfer expire? (default=2d)\n")
     if transfer_expiration == "":
         transfer_expiration = "2d"
-    transfer_password = input("What is the password for the transfer?\n")
+    transfer_password = input("What is the password for the transfer? (blank=Password will be generated)\n")
     files = input(
         "Which files do you want to send? (separate multiple files with a space, default=example_files/test_file.txt)\n"
     )
@@ -206,8 +206,10 @@ def send_transfer_interactive(
     recipients = input("Which email addresses do you want to send to? (separate multiple addresses with a space)\n")
     cc = input("Which email addresses do you want to cc? (separate multiple addresses with a space)\n")
     bcc = input("Which email addresses do you want to bcc? (separate multiple addresses with a space)\n")
-    subject = input("What is the subject of the transfer? blank=default Cryptshare subject\n")
-    message = input("What is the Notification message of the transfer? blank=default Cryptshare Notification message\n")
+    subject = input("What is the subject of the transfer? (blank=default Cryptshare subject)\n")
+    message = input(
+        "What is the Notification message of the transfer? (blank=default Cryptshare Notification message)\n"
+    )
 
     send_transfer(
         origin,
