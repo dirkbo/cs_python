@@ -1,13 +1,59 @@
 from cryptshare.Transfer import Transfer
+from cryptshare.Client import Client as CryptshareClient
+from cryptshare.TransferSettings import TransferSettings
+from helpers import verify_sender
+
+
+def print_transfer_status(status):
+    files = status["files"]
+    num_files = len(files)
+    recipients = status["recipients"]
+    print(f" status: {status['state']}")
+    if status["warnings"] is not False:
+        print("Warnings:")
+        for warning in status["warnings"]:
+            print(f"  {warning}")
+    print(f" Files: {num_files}")
+    print(" Recipients:")
+    for recipient in recipients:
+        print(f"  {recipient['mail']}")
+        print(f"   Transfer ID: {recipient['id']}")
+        print(f"   Download URL: {recipient['downloadUrl']}")
+        print("   Files:")
+        for file in recipient["fileDownloads"]:
+            print(f"    {file['id']}")
+            for access in file["downloads"]:
+                print(f"     {access['retrievalMethod']}: {access['downloadDate']}")
+            if not file["downloads"]:
+                print("     No downloads")
+    print(" Files:")
+    for file in files:
+        if file["removed"]:
+            print(f"  {file['id']} - removed: {file['removalCause']}")
+        else:
+            print(f"  {file['id']} - Provided")
+
+
+def print_transfer_status_list(transfers, send_server, sender_email, cryptshare_client):
+    for list_transfer in transfers:
+        tracking_id = list_transfer["trackingId"]
+        print(f"Transfer status for Tracking ID {tracking_id}:")
+        transfer = Transfer(cryptshare_client.header.general, [], [], [], TransferSettings(sender_email))
+        status_location = f"{send_server}/api/users/{sender_email}/transfers/{tracking_id}"
+        transfer.set_location(status_location)
+        transfer = transfer.get_transfer_status()
+        status = transfer["status"]
+        print_transfer_status(status)
 
 
 def transfer_status(
-    origin,
     send_server,
     sender_email,
-    transfer_transfer_id,
+    transfer_transfer_id=None,
     cryptshare_client=None,
 ):
+    if cryptshare_client is None:
+        cryptshare_client = CryptshareClient(send_server)
     #  Reads existing verifications from the 'store' file if any
     cryptshare_client.read_client_store()
     cryptshare_client.set_email(sender_email)
@@ -16,24 +62,20 @@ def transfer_status(
     #  Both branches also react on the REST API not licensed
     if cryptshare_client.exists_client_id() is False:
         cryptshare_client.request_client_id()
-    else:
-        # Check CORS state for a specific origin.
-        # cryptshare_client.cors(origin)
-        # ToDo: After cors check, client verification from store is not working anymore
-        pass
 
     # request verification for sender if not verified already
-    if cryptshare_client.is_verified() is True:
-        print(f"Sender {sender_email} is verified.")
-    else:
-        cryptshare_client.request_code()
-        verification_code = input(f"Please enter the verification code sent to your email address ({sender_email}):\n")
-        cryptshare_client.verify_code(verification_code.strip())
-        if cryptshare_client.is_verified() is not True:
-            print("Verification failed.")
-            return
+    verify_sender(cryptshare_client, sender_email)
 
-    transfer = Transfer()
-    transfer.set_sender(sender_email)
-    transfer.set_location(send_server)
-    transfer.get_transfer_status()
+    if transfer_transfer_id is None:
+        all_transfers = cryptshare_client.get_transfers()
+        print_transfer_status_list(all_transfers, send_server, sender_email, cryptshare_client)
+        return
+
+    transfer = Transfer(cryptshare_client.header.general, [], [], [], TransferSettings(sender_email))
+    status_location = f"{send_server}/api/users/{sender_email}/transfers/{transfer_transfer_id}"
+    transfer.set_location(status_location)
+    transfer = transfer.get_transfer_status()
+    print(f"Transfer status for Tracking ID {transfer_transfer_id}:")
+    status = transfer["status"]
+    print_transfer_status(status)
+    return

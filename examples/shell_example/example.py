@@ -58,10 +58,7 @@ def transfer_status_interactive(default_server_url, default_sender_email, origin
     sender_email = input(f"From which email do you want to send transfers? (default={default_sender_email})\n")
     if sender_email == "":
         sender_email = default_sender_email
-    transfer_transfer_id = input("Which transfer ID do you want to check the status of?\n")
-    if transfer_transfer_id == "":
-        print("No transfer ID provided.")
-        return
+    transfer_transfer_id = input("Which transfer ID do you want to check the status of? (blank=all)\n")
     transfer_status(origin, send_server, sender_email, transfer_transfer_id)
 
 
@@ -148,9 +145,9 @@ def main():
         default_sender_name = inputs.name
     if inputs.phone:
         default_sender_phone = inputs.phone
+
     if inputs.mode == "send":
         new_transfer_password = inputs.password
-
         send_transfer(
             origin,
             default_server_url,
@@ -172,6 +169,9 @@ def main():
         password = inputs.password
         save_path = recipient_transfer_id
         receive_transfer(origin, default_server_url, recipient_transfer_id, password, save_path)
+        return
+    elif inputs.mode == "status":
+        transfer_status(default_server_url, default_sender_email, inputs.status)
         return
     while True:
         mode = interactive_user_choice()

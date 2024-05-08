@@ -1,6 +1,3 @@
-from cryptshare import SecurityMode as SecurityMode
-
-
 class TransferSettings:
     def __init__(
         self,

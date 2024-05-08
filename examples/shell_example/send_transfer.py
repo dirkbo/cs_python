@@ -3,7 +3,9 @@ from cryptshare.NotificationMessage import NotificationMessage
 from cryptshare.SecurityMode import SecurityMode
 from cryptshare.Sender import Sender as CryptshareSender
 from cryptshare.TransferSettings import TransferSettings
-from cryptshare.helpers import clean_string_list, clean_expiration
+from helpers import clean_string_list, clean_expiration
+
+from examples.shell_example.helpers import verify_sender
 
 
 def send_transfer(
@@ -67,16 +69,7 @@ def send_transfer(
         # ToDo: After cors check, client verification from store is not working anymore
         pass
 
-    # request verification for sender if not verified already
-    if cryptshare_client.is_verified() is True:
-        print(f"Sender {sender_email} is verified.")
-    else:
-        cryptshare_client.request_code()
-        verification_code = input(f"Please enter the verification code sent to your email address ({sender_email}):\n")
-        cryptshare_client.verify_code(verification_code.strip())
-        if cryptshare_client.is_verified() is not True:
-            print("Verification failed.")
-            return
+    verify_sender(cryptshare_client, sender_email)
 
     # ToDo: show password rules to user, when asking for password
     transfer_security_mode = SecurityMode(password=transfer_password, mode="MANUAL")
@@ -130,4 +123,5 @@ def send_transfer(
     post_transfer_info = transfer.get_transfer_status()
     print(f" Post-Transfer info: \n{post_transfer_info}")
     cryptshare_client.write_client_store()
-    print("Transfer sent successfully.")
+    transfer_id = transfer.get_transfer_id()
+    print(f"Transfer {transfer_id} uploaded successfully.")

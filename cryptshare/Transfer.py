@@ -29,6 +29,12 @@ class Transfer(ApiRequestHandler):
     def set_location(self, location_url):
         self.location = location_url
 
+    def get_transfer_id(self):
+        try:
+            return self.location.split("/")[-1]
+        except IndexError:
+            return None
+
     def set_sender(self, sender):
         self.sender = sender
 

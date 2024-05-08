@@ -72,7 +72,6 @@ class Client(ApiRequestHandler):
 
     def is_verified(self):
         path = self.url + self.path1 + self.email_address + "/verification"
-        # print(f"{path} - {self.ssl_verify} - {self.header.general}")
         # ToDO: Fix problem when cors header is present
         r = self._handle_response(
             requests.get(
@@ -82,6 +81,18 @@ class Client(ApiRequestHandler):
             )
         )
         return r.get("verified")
+
+    def get_verification(self):
+        path = self.url + self.path1 + self.email_address + "/verification"
+        # ToDO: Fix problem when cors header is present
+        r = self._handle_response(
+            requests.get(
+                path,
+                verify=self.ssl_verify,
+                headers=self.header.general,
+            )
+        )
+        return r
 
     def cors(self, origin: str):
         self.header.set_origin(origin)
@@ -152,6 +163,16 @@ class Client(ApiRequestHandler):
         r = self._handle_response(
             requests.get(
                 self.url + "/password/requirements",
+                verify=self.ssl_verify,
+                headers=self.header.general,
+            )
+        )
+        return r
+
+    def get_transfers(self):
+        r = self._handle_response(
+            requests.get(
+                self.url + self.path1 + self.email_address + "/transfers",
                 verify=self.ssl_verify,
                 headers=self.header.general,
             )
