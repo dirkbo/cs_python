@@ -1,4 +1,6 @@
-from cryptshare import SecurityMode as SecurityMode
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class TransferSettings:
@@ -20,6 +22,7 @@ class TransferSettings:
         confidential_message_file_id=None,
         security_mode=None,
     ):
+        logger.debug("Initialising TransferSettings")
         self.expiration_date = expiration_date
         self.notification_message = notification_message
         self.security_mode = security_mode
@@ -38,6 +41,7 @@ class TransferSettings:
         self.security_mode = security_mode
 
     def data(self):
+        logger.debug("Returning TransferSettings data")
         return_dict = {
             "notificationMessage": self.notification_message.data(),
             "recipientLanguage": self.recipient_language,

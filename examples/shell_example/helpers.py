@@ -1,6 +1,28 @@
 from datetime import datetime, timedelta
 
 
+def verify_sender(cryptshare_client, sender_email):
+    """
+    This function is used to verify the sender email address.
+
+    :param cryptshare_client: The Cryptshare client instance.
+    :param sender_email: The sender email address.
+    :return: None
+
+    The function checks if the sender email address is already verified. If not, it requests a verification code and verifies the sender email address.
+    """
+    verification = cryptshare_client.get_verification()
+    if verification["verified"] is True:
+        print(f"Sender {sender_email} is verified until {verification['validUntil']}.")
+    else:
+        cryptshare_client.request_code()
+        verification_code = input(f"Please enter the verification code sent to your email address ({sender_email}):\n")
+        cryptshare_client.verify_code(verification_code.strip())
+        if cryptshare_client.is_verified() is not True:
+            print("Verification failed.")
+    return verification
+
+
 def clean_expiration(date_string_value, default_days=2):
     """
     This function is used to clean and standardize the expiration date values.
