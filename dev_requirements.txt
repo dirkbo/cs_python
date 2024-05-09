@@ -1,5 +1,6 @@
 black
 isort
-flake8-black
-flake8-pyproject
 flake8
+flake8-black
+flake8-bugbear
+flake8-pyproject
