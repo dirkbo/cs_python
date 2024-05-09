@@ -1,5 +1,6 @@
-import requests
 import logging
+
+import requests
 
 import cryptshare.TransferFile as TransferFile
 import cryptshare.TransferSettings as TransferSettings

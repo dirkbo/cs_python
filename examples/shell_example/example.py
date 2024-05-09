@@ -1,19 +1,19 @@
 import argparse
-import json
-import os
 import inspect
-import sys
+import json
 import logging
 import logging.config
+import os
+import sys
 
 # To work from examples folder, parent folder is added to path
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 parentdir = os.path.dirname(os.path.dirname(currentdir))
 sys.path.insert(0, parentdir)
 
-from transfer_status import transfer_status
-from send_transfer import send_transfer
 from receive_transfer import receive_transfer
+from send_transfer import send_transfer
+from transfer_status import transfer_status
 
 logging.getLogger(__name__)
 LOGGING_CONFIG_FILE = "examples/shell_example/logging_config.json"

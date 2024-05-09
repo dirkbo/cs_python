@@ -1,9 +1,10 @@
 import logging
 
-from cryptshare.Transfer import Transfer
-from cryptshare.Client import Client as CryptshareClient
-from cryptshare.TransferSettings import TransferSettings
 from helpers import verify_sender
+
+from cryptshare.Client import Client as CryptshareClient
+from cryptshare.Transfer import Transfer
+from cryptshare.TransferSettings import TransferSettings
 
 logger = logging.getLogger(__name__)
 

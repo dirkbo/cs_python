@@ -1,7 +1,7 @@
 import unittest
 from datetime import datetime, timedelta
 
-from cryptshare.helpers import clean_string_list, clean_expiration
+from cryptshare.helpers import clean_expiration, clean_string_list
 
 
 class TestSendTransfer(unittest.TestCase):

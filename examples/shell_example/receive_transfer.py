@@ -1,6 +1,8 @@
 import os
+
 import requests
 from tqdm import tqdm
+
 from cryptshare.Client import Client as CryptshareClient
 
 

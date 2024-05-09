@@ -1,7 +1,7 @@
 import hashlib
+import logging
 import os
 import typing
-import logging
 
 import requests
 
