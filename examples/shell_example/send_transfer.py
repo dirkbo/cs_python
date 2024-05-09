@@ -1,3 +1,5 @@
+import logging
+
 from cryptshare.Client import Client as CryptshareClient
 from cryptshare.NotificationMessage import NotificationMessage
 from cryptshare.SecurityMode import SecurityMode
@@ -6,6 +8,8 @@ from cryptshare.TransferSettings import TransferSettings
 from helpers import clean_string_list, clean_expiration
 
 from examples.shell_example.helpers import verify_sender
+
+logger = logging.getLogger(__name__)
 
 
 def send_transfer(
@@ -83,14 +87,14 @@ def send_transfer(
         if not valid_password:
             print("Passwort is not valid.")
             password_rules = cryptshare_client.get_password_rules()
-            print(f"Passwort rules:\n{password_rules}")
+            logger.debug(f"Passwort rules:\n{password_rules}")
             return
 
     policy_response = cryptshare_client.get_policy(all_recipients)
     valid_policy = policy_response.get("allowed")
     if not valid_policy:
         print("Policy not valid.")
-        print(f"Policy response: {policy_response}")
+        logger.debug(f"Policy response: {policy_response}")
         return
 
     #  Transfer definition
@@ -117,11 +121,11 @@ def send_transfer(
     for file in files:
         transfer.upload_file(file)
 
-    # pre_transfer_info = transfer.get_transfer_settings()
-    # print(f" Pre-Transfer info: \n{pre_transfer_info}")
+    pre_transfer_info = transfer.get_transfer_settings()
+    logger.debug(f"Pre-Transfer info: \n{pre_transfer_info}")
     transfer.send_transfer()
     post_transfer_info = transfer.get_transfer_status()
-    print(f" Post-Transfer info: \n{post_transfer_info}")
+    logger.debug(f" Post-Transfer info: \n{post_transfer_info}")
     cryptshare_client.write_client_store()
     transfer_id = transfer.get_transfer_id()
     print(f"Transfer {transfer_id} uploaded successfully.")

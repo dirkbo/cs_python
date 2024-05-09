@@ -1,10 +1,16 @@
+import logging
+
 from cryptshare.Transfer import Transfer
 from cryptshare.Client import Client as CryptshareClient
 from cryptshare.TransferSettings import TransferSettings
 from helpers import verify_sender
 
+logger = logging.getLogger(__name__)
+
 
 def print_transfer_status(status):
+    logger.info("Printing user friendly transfer status")
+    logger.debug(f"Status data: {status}")
     files = status["files"]
     num_files = len(files)
     recipients = status["recipients"]
@@ -35,6 +41,8 @@ def print_transfer_status(status):
 
 
 def print_transfer_status_list(transfers, send_server, sender_email, cryptshare_client):
+    logger.info("Printing user friendly transfer status list")
+    logger.debug(f"Status data: {transfers}")
     for list_transfer in transfers:
         tracking_id = list_transfer["trackingId"]
         print(f"Transfer status for Tracking ID {tracking_id}:")
@@ -68,9 +76,11 @@ def transfer_status(
 
     if transfer_transfer_id is None:
         all_transfers = cryptshare_client.get_transfers()
+        logger.debug("Transfer status for all transfers\n")
         print_transfer_status_list(all_transfers, send_server, sender_email, cryptshare_client)
         return
 
+    logger.debug(f"Transfer status for transfer {transfer_transfer_id}\n")
     transfer = Transfer(cryptshare_client.header.general, [], [], [], TransferSettings(sender_email))
     status_location = f"{send_server}/api/users/{sender_email}/transfers/{transfer_transfer_id}"
     transfer.set_location(status_location)

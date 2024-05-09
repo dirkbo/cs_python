@@ -1,7 +1,10 @@
 import argparse
+import json
 import os
 import inspect
 import sys
+import logging
+import logging.config
 
 # To work from examples folder, parent folder is added to path
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
@@ -11,6 +14,15 @@ sys.path.insert(0, parentdir)
 from transfer_status import transfer_status
 from send_transfer import send_transfer
 from receive_transfer import receive_transfer
+
+logging.getLogger(__name__)
+LOGGING_CONFIG_FILE = "examples/shell_example/logging_config.json"
+
+
+def setup_logging():
+    with open(LOGGING_CONFIG_FILE, "r") as f:
+        config = json.load(f)
+        logging.config.dictConfig(config)
 
 
 def parse_args():
@@ -131,6 +143,7 @@ def download_transfer_interactive(default_server_url, origin):
 
 
 def main():
+    setup_logging()
     inputs = parse_args()
     default_server_url = os.getenv("CRYPTSHARE_SERVER", "https://beta.cryptshare.com")
     default_sender_email = os.getenv("CRYPTSHARE_SENDER_EMAIL", None)
