@@ -1,4 +1,9 @@
+import os
+import logging
+
 from datetime import datetime, timedelta
+
+logger = logging.getLogger(__name__)
 
 
 def verify_sender(cryptshare_client, sender_email):
@@ -158,3 +163,39 @@ def clean_string_list(string_list):
     # remove duplicates
     string_list = list(dict.fromkeys(string_list))
     return string_list
+
+
+def twilio_sms_is_configured():
+    account_sid = os.getenv("TWILIO_ACCOUNT_SID", None)
+    auth_token = os.getenv("TWILIO_AUTH_TOKEN", None)
+    sender_phone = os.getenv("TWILIO_SENDER_PHONE", None)
+
+    if account_sid is None or auth_token is None or sender_phone is None:
+        logger.debug("Twilio SMS is not configured.")
+        return False
+    logger.debug("Twilio SMS is configured.")
+    return True
+
+
+def send_password_with_twilio(tracking_id, password, recipient_sms, recipient_email=None):
+    # Find these values at https://twilio.com/user/account
+    # To set up environmental variables, see http://twil.io/secure
+
+    if not twilio_sms_is_configured():
+        return
+
+    account_sid = os.getenv("TWILIO_ACCOUNT_SID", None)
+    auth_token = os.getenv("TWILIO_AUTH_TOKEN", None)
+    sender_phone = os.getenv("TWILIO_SENDER_PHONE", None)
+
+    message = f"To access your Cryptshare Transfer {tracking_id} the password is {password}"
+    if recipient_email is not None:
+        message = (
+            f"To access the Cryptshare transfer {tracking_id} sent to {recipient_email}, the password is {password}"
+        )
+
+    from twilio.rest import Client
+
+    client = Client(account_sid, auth_token)
+    client.api.account.messages.create(to=recipient_sms, from_=sender_phone, body=message)
+    logger.debug(f"Password SMS sent to {recipient_sms}.")

@@ -39,6 +39,22 @@ Default Value is "0". When configured, the phone number will be used as default 
 ### CRYPTSHARE_CORS_ORIGIN"
 Default Value is "https://localhost". When configured, the origin will be used as default CORS origin.
 
+### TWILIO_ACCOUNT_SID 
+Optional, Passwords can't be sent by sms if not configured.
+
+Twilio Account access for sending password by SMS. 
+
+### TWILIO_AUTH_TOKEN
+Optional, Passwords can't be sent by sms if not configured.
+
+Twilio Account access for sending password by SMS. 
+
+### TWILIO_SENDER_PHONE
+Optional, Passwords can't be sent by sms if not configured.
+
+Phone Number to send password sms from.  
+
+
 # Examples
 
 ## Shell examples
@@ -50,6 +66,9 @@ install additional requirements
 
 ### send files from commandline
 `python examples/shell_example/example.py -m send -e test@example.com -f example_files/test_file.txt -f example_files/file-example_PDF_1MB.pdf --bcc test1@example.com --bcc 'test2@example.com' -p 'test!Test1'`
+
+### send files from commandline, send generated password to recipients by sms (if twilio is configured)
+`python examples/shell_example/example.py -m send -e test@example.com -f example_files/test_file.txt -f example_files/file-example_PDF_1MB.pdf --bcc test1@example.com --bcc 'test2@example.com' --sms_recipient +49123456789 --sms_recipient +4112345678`
 
 ### receive transfer from commandline
 `python examples/shell_example/example.py -m receive -t 5xVluOW7NR -p 'test!Test1'`

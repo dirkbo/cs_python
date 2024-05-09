@@ -49,6 +49,7 @@ def parse_args():
     parser.add_argument("--subject", help="Subject of the Transfer to SEND.")
     parser.add_argument("--message", help="Custom notification Message of the Transfer to SEND.")
     parser.add_argument("--expiration", help="Expiration of the Transfer to SEND.")
+    parser.add_argument("--sms_recipient", help="Recipient phone number to SEND SMS Password to.", action="append")
     # Check status of a sent Transfer
     parser.add_argument("--status", help="Tracking ID of the Transfer to check STATUS of.", required=False)
     args = parser.parse_args()
@@ -175,6 +176,7 @@ def main():
             bcc=inputs.bcc,
             subject=inputs.subject,
             message=inputs.message,
+            recipient_sms_phones=inputs.sms_recipient,
         )
         return
     elif inputs.mode == "receive":

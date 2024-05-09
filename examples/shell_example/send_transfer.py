@@ -5,7 +5,7 @@ from cryptshare.NotificationMessage import NotificationMessage
 from cryptshare.SecurityMode import SecurityMode
 from cryptshare.Sender import Sender as CryptshareSender
 from cryptshare.TransferSettings import TransferSettings
-from helpers import clean_string_list, clean_expiration
+from helpers import clean_string_list, clean_expiration, twilio_sms_is_configured, send_password_with_twilio
 
 from examples.shell_example.helpers import verify_sender
 
@@ -26,6 +26,7 @@ def send_transfer(
     bcc="",
     subject="",
     message="",
+    recipient_sms_phones=None,
     cryptshare_client=None,
 ):
     if cryptshare_client is None:
@@ -75,11 +76,18 @@ def send_transfer(
 
     verify_sender(cryptshare_client, sender_email)
 
+    send_password_sms = False
+    if twilio_sms_is_configured() and recipient_sms_phones is not None:
+        send_password_sms = True
+
     # ToDo: show password rules to user, when asking for password
     transfer_security_mode = SecurityMode(password=transfer_password, mode="MANUAL")
     if transfer_password == "" or transfer_password is None:
         transfer_password = cryptshare_client.get_password().get("password")
-        print(f"Generated Password to receive Files: {transfer_password}")
+        if send_password_sms:
+            print("Generated Password to receive Files will be sent via SMS.")
+        else:
+            print(f"Generated Password to receive Files: {transfer_password}")
         transfer_security_mode = SecurityMode(password=transfer_password, mode="GENERATED")
     else:
         passwort_validated_response = cryptshare_client.validate_password(transfer_password)
@@ -89,6 +97,8 @@ def send_transfer(
             password_rules = cryptshare_client.get_password_rules()
             logger.debug(f"Passwort rules:\n{password_rules}")
             return
+        if send_password_sms:
+            print("Password to receive Files will be sent via SMS.")
 
     policy_response = cryptshare_client.get_policy(all_recipients)
     valid_policy = policy_response.get("allowed")
@@ -129,3 +139,6 @@ def send_transfer(
     cryptshare_client.write_client_store()
     transfer_id = transfer.get_transfer_id()
     print(f"Transfer {transfer_id} uploaded successfully.")
+    if twilio_sms_is_configured() and recipient_sms_phones is not None:
+        for recipient_sms in recipient_sms_phones:
+            send_password_with_twilio(transfer_id, transfer_password, recipient_sms)
