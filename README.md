@@ -52,7 +52,7 @@ Twilio Account access for sending password by SMS.
 ### TWILIO_SENDER_PHONE
 Optional, Passwords can't be sent by sms if not configured.
 
-Phone Number to send password sms from.  
+Phone Number to send password sms from. Twilio trail accounts can only send SMS from and to verified numbers. 
 
 
 # Examples

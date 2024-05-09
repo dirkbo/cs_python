@@ -187,6 +187,7 @@ def send_password_with_twilio(tracking_id, password, recipient_sms, recipient_em
     account_sid = os.getenv("TWILIO_ACCOUNT_SID", None)
     auth_token = os.getenv("TWILIO_AUTH_TOKEN", None)
     sender_phone = os.getenv("TWILIO_SENDER_PHONE", None)
+    # Twilio trail accounts can only send SMS from and to verified numbers
 
     message = f"To access your Cryptshare Transfer {tracking_id} the password is {password}"
     if recipient_email is not None:
