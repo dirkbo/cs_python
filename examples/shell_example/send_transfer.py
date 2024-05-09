@@ -80,14 +80,23 @@ def send_transfer(
     if twilio_sms_is_configured() and recipient_sms_phones is not None:
         send_password_sms = True
 
+    show_generated_pasword = not send_password_sms
+    if len(recipient_sms_phones) != len(all_recipients):
+        logger.debug("Number of SMS recipients does not match number of email recipients.")
+        show_generated_pasword = True
+
     # ToDo: show password rules to user, when asking for password
     transfer_security_mode = SecurityMode(password=transfer_password, mode="MANUAL")
     if transfer_password == "" or transfer_password is None:
         transfer_password = cryptshare_client.get_password().get("password")
-        if send_password_sms:
+        if not show_generated_pasword:
             print("Generated Password to receive Files will be sent via SMS.")
         else:
             print(f"Generated Password to receive Files: {transfer_password}")
+            if send_password_sms:
+                print(
+                    "Number of phone numbers does not match number of email addresses. SMS might not be sent to all recipients."
+                )
         transfer_security_mode = SecurityMode(password=transfer_password, mode="GENERATED")
     else:
         passwort_validated_response = cryptshare_client.validate_password(transfer_password)

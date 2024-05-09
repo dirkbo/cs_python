@@ -198,5 +198,9 @@ def send_password_with_twilio(tracking_id, password, recipient_sms, recipient_em
     from twilio.rest import Client
 
     client = Client(account_sid, auth_token)
-    client.api.account.messages.create(to=recipient_sms, from_=sender_phone, body=message)
-    logger.debug(f"Password SMS sent to {recipient_sms}.")
+    try:
+        client.api.account.messages.create(to=recipient_sms, from_=sender_phone, body=message)
+    except Exception as e:
+        logger.error(f"Twilio SMS failed: {e}")
+    else:
+        logger.debug(f"Password SMS sent to {recipient_sms}.")
