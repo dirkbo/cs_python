@@ -1,5 +1,6 @@
 # Prerequisites
-A running cryptshare server with licensed REST-API is required.
+- A running cryptshare server with licensed REST-API is required.
+- python 3.11
 
 # Getting started
 Create virtual env 
@@ -69,6 +70,6 @@ Run GUI example
 `python examples/gui_example/gui.py`
 
 # Disclaimer
-This project is in no way affiliated with Pointsharp and completely based on publivly available [documentation](http://documentation.cryptshare.com). 
+This project is in no way affiliated with Pointsharp and completely based on publicly available [documentation](http://documentation.cryptshare.com). 
 
 Pointsharp Support can and will not provide any support for this project.
