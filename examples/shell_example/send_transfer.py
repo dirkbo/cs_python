@@ -1,4 +1,5 @@
 import logging
+import itertools
 
 from helpers import (
     clean_expiration,
@@ -43,20 +44,10 @@ def send_transfer(
     bcc = clean_string_list(bcc)
     expiration_date = clean_expiration(expiration_date)
 
-    transformed_recipients = []
-    for recipient in recipients:
-        transformed_recipients.append({"mail": recipient})
-    transformed_cc_recipients = []
-    for recipient in cc:
-        transformed_cc_recipients.append({"mail": recipient})
-    transformed_bcc_recipients = []
-    for recipient in bcc:
-        transformed_bcc_recipients.append({"mail": recipient})
-
-    all_recipients = []
-    all_recipients.extend(recipients)
-    all_recipients.extend(cc)
-    all_recipients.extend(bcc)
+    transformed_recipients = [{"mail": recipient} for recipient in recipients]
+    transformed_cc_recipients = [{"mail": recipient} for recipient in cc]
+    transformed_bcc_recipients = [{"mail": recipient} for recipient in bcc]
+    all_recipients = list(itertools.chain(recipients, cc, bcc))
     # All recipients list needed for policy request
 
     print(f"Sending Transfer from {sender_email} using {send_server}")
@@ -86,9 +77,10 @@ def send_transfer(
         send_password_sms = True
 
     show_generated_pasword = not send_password_sms
-    if len(recipient_sms_phones) != len(all_recipients):
-        logger.debug("Number of SMS recipients does not match number of email recipients.")
-        show_generated_pasword = True
+    if recipient_sms_phones and all_recipients:
+        if len(recipient_sms_phones) != len(all_recipients):
+            logger.debug("Number of SMS recipients does not match number of email recipients.")
+            show_generated_pasword = True
 
     # ToDo: show password rules to user, when asking for password
     transfer_security_mode = SecurityMode(password=transfer_password, mode="MANUAL")
