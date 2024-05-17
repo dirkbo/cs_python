@@ -10,4 +10,5 @@ venv2
 vmanage.py
 credentials.py
 client_store.json
+client_store_*.json
 transfers

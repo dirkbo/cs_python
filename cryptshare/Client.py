@@ -1,5 +1,7 @@
+import hashlib
 import json
 import logging
+import os
 
 import requests
 
@@ -16,10 +18,9 @@ class Client(ApiRequestHandler):
     header = CryptshareHeader.Header()
     email_address = ""
     _server = ""
-    api_path_users = "/users/"
     _api_paths = {
         "users": "/api/users/",
-        "clients": "/api/users/clients",
+        "clients": "/api/clients",
         "products": "/api/users/products/",
         "password_requirements": "/api/password/requirements",
         "password": "/api/password",
@@ -35,6 +36,10 @@ class Client(ApiRequestHandler):
     @property
     def server(self):
         return self._server
+
+    @property
+    def server_hash(self):
+        return hashlib.shake_256(self.server.encode("utf-8")).hexdigest(16)
 
     @server.setter
     def server(self, server: str):
@@ -186,10 +191,17 @@ class Client(ApiRequestHandler):
         logger.debug("Setting client ID in client headers")
         self.store.update({"X-CS-ClientId": r.get("clientId")})
 
+    @property
+    def server_client_store_path(self):
+        client_store = self.client_store_path
+        path = os.path.splitext(client_store)
+        client_store = f"{path[0]}_{self.server_hash}{path[1]}"
+        return client_store
+
     def read_client_store(self):
-        logger.debug(f"Reading client store from {self.client_store_path}")
+        logger.debug(f"Reading client store from {self.server_client_store_path}")
         try:
-            with open(self.client_store_path, "r") as json_file:
+            with open(self.server_client_store_path, "r") as json_file:
                 try:
                     self.store = json.load(json_file)
                 except Exception as e:
@@ -197,17 +209,17 @@ class Client(ApiRequestHandler):
             if "X-CS-ClientId" in self.store:
                 self.header.set_client_id(self.store.get("X-CS-ClientId"))
         except IOError:
-            logger.warning(f"Failed to read client store from {self.client_store_path}")
+            logger.warning(f"Failed to read client store from {self.server_client_store_path}")
             return ""
 
     def write_client_store(self):
-        logger.debug(f"Writing client store to {self.client_store_path}")
+        logger.debug(f"Writing client store to {self.server_client_store_path}")
         try:
-            with open(self.client_store_path, "w") as outfile:
+            with open(self.server_client_store_path, "w") as outfile:
                 json.dump(self.store, outfile, indent=4)
             outfile.close()
         except IOError:
-            logger.warning(f"Failed to write client store to {self.client_store_path}")
+            logger.warning(f"Failed to write client store to {self.server_client_store_path}")
 
     def get_password_rules(self):
         path =self.api_path('password_requirements')
