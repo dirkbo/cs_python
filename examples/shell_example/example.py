@@ -15,6 +15,7 @@ sys.path.insert(0, parentdir)
 from receive_transfer import receive_transfer
 from send_transfer import send_transfer
 from transfer_status import transfer_status
+from helpers import is_valid_email
 
 logging.getLogger(__name__)
 LOGGING_CONFIG_FILE = "examples/shell_example/logging_config.json"
@@ -87,7 +88,10 @@ def send_transfer_interactive(
         send_server = default_server_url
     print(f"Sending transfer using {send_server}")
 
-    sender_email = questionary.text(f"From which email do you want to send transfers? (default={default_sender_email})\n").ask()
+    sender_email = questionary.text(f"From which email do you want to send transfers? (default={default_sender_email})\n",
+                                    default=default_sender_email,
+                                    validate=is_valid_email,
+                                    ).ask()
     if sender_email == "":
         sender_email = default_sender_email
     sender_name = questionary.text(f"What is the name of the sender? (default={default_sender_name})\n").ask()
@@ -106,9 +110,15 @@ def send_transfer_interactive(
     ).ask()
     if files == "":
         files = "examples/example_files/test_file.txt"
-    recipients = questionary.text("Which email addresses do you want to send to? (separate multiple addresses with a space)\n").ask()
-    cc = questionary.text("Which email addresses do you want to cc? (separate multiple addresses with a space)\n").ask()
-    bcc = questionary.text("Which email addresses do you want to bcc? (separate multiple addresses with a space)\n").ask()
+    recipients = questionary.text("Which email addresses do you want to send to? (separate multiple addresses with a space)\n",
+                                  validate=is_valid_email,
+                                  ).ask()
+    cc = questionary.text("Which email addresses do you want to cc? (separate multiple addresses with a space)\n",
+                          validate=is_valid_email,
+                          ).ask()
+    bcc = questionary.text("Which email addresses do you want to bcc? (separate multiple addresses with a space)\n",
+                           validate=is_valid_email,
+                           ).ask()
     subject = questionary.text("What is the subject of the transfer? (blank=default Cryptshare subject)\n").ask()
     message = questionary.text(
         "What is the Notification message of the transfer? (blank=default Cryptshare Notification message)\n"

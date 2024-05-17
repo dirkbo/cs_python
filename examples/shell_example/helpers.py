@@ -1,5 +1,6 @@
 import logging
 import os
+import re
 from datetime import datetime, timedelta
 import questionary
 
@@ -26,6 +27,17 @@ def verify_sender(cryptshare_client, sender_email):
         if cryptshare_client.is_verified() is not True:
             print("Verification failed.")
     return verification
+
+
+def is_valid_email(email):
+    if email is None or email == "":
+        return True
+    # Make a regular expression for validating an Email
+    regex = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,7}\b'
+
+    if re.fullmatch(regex, email):
+        return True
+    return False
 
 
 def clean_expiration(date_string_value, default_days=2):
