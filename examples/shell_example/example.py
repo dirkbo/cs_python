@@ -117,20 +117,23 @@ def send_transfer_interactive(
     ).ask()
     if sender_email == "":
         sender_email = default_sender_email
-    sender_name = questionary.text("What is the name of the sender?\n",
-                                   default=default_sender_name,
-                                   ).ask()
+    sender_name = questionary.text(
+        "What is the name of the sender?\n",
+        default=default_sender_name,
+    ).ask()
     if sender_name == "":
         sender_name = default_sender_name
-    sender_phone = questionary.text(f"What is the phone number of the sender?\n",
-                                    default=default_sender_phone,
-                                    ).ask()
+    sender_phone = questionary.text(
+        "What is the phone number of the sender?\n",
+        default=default_sender_phone,
+    ).ask()
     if sender_phone == "":
         sender_phone = default_sender_phone
-    transfer_expiration = questionary.text("When should the transfer expire?\n",
-                                           default="5d",
-                                           validate=is_valid_expiration,
-                                           ).ask()
+    transfer_expiration = questionary.text(
+        "When should the transfer expire?\n",
+        default="5d",
+        validate=is_valid_expiration,
+    ).ask()
     if transfer_expiration == "":
         transfer_expiration = "2d"
     transfer_password = questionary.password(
@@ -140,7 +143,6 @@ def send_transfer_interactive(
         "Which files do you want to send? (separate multiple files with a space, default=example_files/test_file.txt)\n",
         default="examples/example_files/test_file.txt",
         only_files=True,
-        
     ).ask()
     if files == "":
         files = "examples/example_files/test_file.txt"
