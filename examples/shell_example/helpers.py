@@ -22,7 +22,9 @@ def verify_sender(cryptshare_client, sender_email):
         print(f"Sender {sender_email} is verified until {verification['validUntil']}.")
     else:
         cryptshare_client.request_code()
-        verification_code = questionary.text(f"Please enter the verification code sent to your email address ({sender_email}):\n").ask()
+        verification_code = questionary.text(
+            f"Please enter the verification code sent to your email address ({sender_email}):\n"
+        ).ask()
         cryptshare_client.verify_code(verification_code.strip())
         if cryptshare_client.is_verified() is not True:
             print("Verification failed.")
@@ -33,9 +35,20 @@ def is_valid_email(email):
     if email is None or email == "":
         return True
     # Make a regular expression for validating an Email
-    regex = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,7}\b'
+    regex = r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,7}\b"
 
     if re.fullmatch(regex, email):
+        return True
+    return False
+
+
+def is_valid_server(server):
+    if server is None or server == "":
+        return False
+    # Make a regular expression for validating a URL
+    regex = r"(http|https)://[a-zA-Z0-9.-]+\.[a-zA-Z]{2,7}"
+
+    if re.fullmatch(regex, server):
         return True
     return False
 
