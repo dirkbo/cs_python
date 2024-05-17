@@ -63,6 +63,7 @@ def transfer_status(
 ):
     if cryptshare_client is None:
         cryptshare_client = CryptshareClient(send_server)
+
     #  Reads existing verifications from the 'store' file if any
     cryptshare_client.read_client_store()
     cryptshare_client.set_email(sender_email)

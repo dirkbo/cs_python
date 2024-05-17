@@ -1,6 +1,7 @@
 import logging
 import os
 from datetime import datetime, timedelta
+import questionary
 
 logger = logging.getLogger(__name__)
 
@@ -20,7 +21,7 @@ def verify_sender(cryptshare_client, sender_email):
         print(f"Sender {sender_email} is verified until {verification['validUntil']}.")
     else:
         cryptshare_client.request_code()
-        verification_code = input(f"Please enter the verification code sent to your email address ({sender_email}):\n")
+        verification_code = questionary.text(f"Please enter the verification code sent to your email address ({sender_email}):\n").ask()
         cryptshare_client.verify_code(verification_code.strip())
         if cryptshare_client.is_verified() is not True:
             print("Verification failed.")

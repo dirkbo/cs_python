@@ -5,6 +5,7 @@ import logging
 import logging.config
 import os
 import sys
+import questionary
 
 # To work from examples folder, parent folder is added to path
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
@@ -57,57 +58,61 @@ def parse_args():
 
 
 def interactive_user_choice():
-    mode = input("Do you want to send or receive files? (send/receive/status/exit)?\n").lower()
+    mode = questionary.select(
+        "Do you want to send or receive files?",
+        choices=["Send", "Receive", "Status", "Exit"],
+    ).ask().lower()
     if mode == "cancel" or mode == "abort" or mode == "exit":
         return False
     return mode
 
 
 def transfer_status_interactive(default_server_url, default_sender_email, origin):
-    send_server = input(f"Which server do you want to use to check a Transfer status? (default={default_server_url})\n")
+    send_server = questionary.text(f"Which server do you want to use to check a Transfer status? (default={default_server_url})\n").ask()
     if send_server == "":
         send_server = default_server_url
     print(f"Checking transfer status using {send_server}")
-    sender_email = input(f"From which email do you want to send transfers? (default={default_sender_email})\n")
+    sender_email = questionary.text(f"From which email do you want to send transfers? (default={default_sender_email})\n").ask()
     if sender_email == "":
         sender_email = default_sender_email
-    transfer_transfer_id = input("Which transfer ID do you want to check the status of? (blank=all)\n")
+    transfer_transfer_id = questionary.text("Which transfer ID do you want to check the status of? (blank=all)\n").ask()
     transfer_status(origin, send_server, sender_email, transfer_transfer_id)
 
 
 def send_transfer_interactive(
     default_server_url, default_sender_email, default_sender_name, default_sender_phone, origin
 ):
-    send_server = input(f"Which server do you want to use to send a Transfer? (default={default_server_url})\n")
+    send_server = questionary.text(f"Which server do you want to use to send a Transfer? (default={default_server_url})\n").ask()
     if send_server == "":
         send_server = default_server_url
     print(f"Sending transfer using {send_server}")
 
-    sender_email = input(f"From which email do you want to send transfers? (default={default_sender_email})\n")
+    sender_email = questionary.text(f"From which email do you want to send transfers? (default={default_sender_email})\n").ask()
     if sender_email == "":
         sender_email = default_sender_email
-    sender_name = input(f"What is the name of the sender? (default={default_sender_name})\n")
+    sender_name = questionary.text(f"What is the name of the sender? (default={default_sender_name})\n").ask()
     if sender_name == "":
         sender_name = default_sender_name
-    sender_phone = input(f"What is the phone number of the sender? (default={default_sender_phone})\n")
+    sender_phone = questionary.text(f"What is the phone number of the sender? (default={default_sender_phone})\n").ask()
     if sender_phone == "":
         sender_phone = default_sender_phone
-    transfer_expiration = input("When should the transfer expire? (default=2d)\n")
+    transfer_expiration = questionary.text("When should the transfer expire? (default=2d)\n").ask()
     if transfer_expiration == "":
         transfer_expiration = "2d"
-    transfer_password = input("What is the password for the transfer? (blank=Password will be generated)\n")
-    files = input(
-        "Which files do you want to send? (separate multiple files with a space, default=example_files/test_file.txt)\n"
-    )
+    transfer_password = questionary.password("What is the password for the transfer? (blank=Password will be generated)\n").ask()
+    files = questionary.path(
+        "Which files do you want to send? (separate multiple files with a space, default=example_files/test_file.txt)\n",
+        default="examples/example_files/test_file.txt",
+    ).ask()
     if files == "":
         files = "examples/example_files/test_file.txt"
-    recipients = input("Which email addresses do you want to send to? (separate multiple addresses with a space)\n")
-    cc = input("Which email addresses do you want to cc? (separate multiple addresses with a space)\n")
-    bcc = input("Which email addresses do you want to bcc? (separate multiple addresses with a space)\n")
-    subject = input("What is the subject of the transfer? (blank=default Cryptshare subject)\n")
-    message = input(
+    recipients = questionary.text("Which email addresses do you want to send to? (separate multiple addresses with a space)\n").ask()
+    cc = questionary.text("Which email addresses do you want to cc? (separate multiple addresses with a space)\n").ask()
+    bcc = questionary.text("Which email addresses do you want to bcc? (separate multiple addresses with a space)\n").ask()
+    subject = questionary.text("What is the subject of the transfer? (blank=default Cryptshare subject)\n").ask()
+    message = questionary.text(
         "What is the Notification message of the transfer? (blank=default Cryptshare Notification message)\n"
-    )
+    ).ask()
 
     send_transfer(
         origin,
@@ -127,17 +132,22 @@ def send_transfer_interactive(
 
 
 def download_transfer_interactive(default_server_url, origin):
-    dl_server = input(f"From which server do you want to download a Transfer? (default={default_server_url}) \n")
+    dl_server = questionary.text(f"From which server do you want to download a Transfer?\n",
+                                 default=default_server_url
+                                 ).ask()
     if dl_server == "":
         dl_server = default_server_url
     print(f"Downloading from {dl_server}")
 
-    recipient_transfer_id = input(f"Which transfer ID did you receive from {default_server_url}?\n")
-    password = input(f"What is the PASSWORD for transfer {recipient_transfer_id}?\n")
+    recipient_transfer_id = questionary.text(f"Which transfer ID did you receive from {default_server_url}?\n").ask()
+    password = questionary.password(f"What is the PASSWORD for transfer {recipient_transfer_id}?\n").ask()
 
     default_path = recipient_transfer_id
     save_path = default_path
-    user_path = input(f"Where do you want to save the downloaded files? (default=transfers/{default_path})")
+    user_path = questionary.path("Where do you want to save the downloaded files?",
+                                 default=default_path,
+                                 only_directories=True,
+                                 ).ask()
     if user_path != "":
         save_path = user_path
     receive_transfer(origin, dl_server, recipient_transfer_id, password, save_path)
