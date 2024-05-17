@@ -141,9 +141,7 @@ def send_transfer_interactive(
     ).ask()
     files = questionary.path(
         "Which files do you want to send? (separate multiple files with a space, default=example_files/test_file.txt)\n",
-        default="examples/example_files/test_file.txt",
-        only_files=True,
-    ).ask()
+        default="examples/example_files/test_file.txt",    ).ask()
     if files == "":
         files = "examples/example_files/test_file.txt"
     recipients = questionary.text(
