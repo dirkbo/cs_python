@@ -31,7 +31,7 @@ def verify_sender(cryptshare_client, sender_email):
     return verification
 
 
-def is_valid_email(email):
+def is_valid_email_or_blank(email):
     if email is None or email == "":
         return True
     # Make a regular expression for validating an Email
@@ -40,6 +40,11 @@ def is_valid_email(email):
     if re.fullmatch(regex, email):
         return True
     return False
+
+def is_valid_email(email):
+    if email is None or email == "":
+        return False
+    return is_valid_email_or_blank(email)
 
 
 def is_valid_server(server):
@@ -160,8 +165,16 @@ def clean_expiration(date_string_value, default_days=2):
     if date_string_value.endswith("m"):
         months = int(date_string_value[:-1])
         return now + timedelta(weeks=months * 4)
-    return date_value
+    raise ValueError(f"Invalid expiration date: {date_string_value}")
 
+def is_valid_expiration(date_string_value):
+    if date_string_value is None or date_string_value == "":
+        return False
+    try:
+        clean_expiration(date_string_value)
+    except ValueError:
+        return False
+    return True
 
 def clean_string_list(string_list):
     """

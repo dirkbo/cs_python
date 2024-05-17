@@ -6,6 +6,7 @@ import logging.config
 import os
 import sys
 import questionary
+from dotenv import load_dotenv
 
 # To work from examples folder, parent folder is added to path
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
@@ -15,7 +16,7 @@ sys.path.insert(0, parentdir)
 from receive_transfer import receive_transfer
 from send_transfer import send_transfer
 from transfer_status import transfer_status
-from helpers import is_valid_email, is_valid_server
+from helpers import is_valid_email_or_blank, is_valid_server, is_valid_email, is_valid_expiration
 
 logging.getLogger(__name__)
 LOGGING_CONFIG_FILE = "examples/shell_example/logging_config.json"
@@ -82,12 +83,12 @@ def transfer_status_interactive(default_server_url, default_sender_email, origin
         send_server = default_server_url
     print(f"Checking transfer status using {send_server}")
 
-    if default_sender_email is None or not is_valid_email(default_sender_email):
+    if default_sender_email is None or not is_valid_email_or_blank(default_sender_email):
         default_sender_email = ""
     sender_email = questionary.text(
         "For which email do you want to check transfer status?\n",
         default=default_sender_email,
-        validate=is_valid_email,
+        validate=is_valid_email_or_blank,
     ).ask()
     if sender_email == "":
         sender_email = default_sender_email
@@ -107,7 +108,7 @@ def send_transfer_interactive(
         send_server = default_server_url
     print(f"Sending transfer using {send_server}")
 
-    if default_sender_email is None or not is_valid_email(default_sender_email):
+    if default_sender_email is None or not is_valid_email_or_blank(default_sender_email):
         default_sender_email = ""
     sender_email = questionary.text(
         "From which email do you want to send transfers?\n",
@@ -116,13 +117,20 @@ def send_transfer_interactive(
     ).ask()
     if sender_email == "":
         sender_email = default_sender_email
-    sender_name = questionary.text(f"What is the name of the sender? (default={default_sender_name})\n").ask()
+    sender_name = questionary.text("What is the name of the sender?\n",
+                                   default=default_sender_name,
+                                   ).ask()
     if sender_name == "":
         sender_name = default_sender_name
-    sender_phone = questionary.text(f"What is the phone number of the sender? (default={default_sender_phone})\n").ask()
+    sender_phone = questionary.text(f"What is the phone number of the sender?\n",
+                                    default=default_sender_phone,
+                                    ).ask()
     if sender_phone == "":
         sender_phone = default_sender_phone
-    transfer_expiration = questionary.text("When should the transfer expire? (default=2d)\n").ask()
+    transfer_expiration = questionary.text("When should the transfer expire?\n",
+                                           default="5d",
+                                           validate=is_valid_expiration,
+                                           ).ask()
     if transfer_expiration == "":
         transfer_expiration = "2d"
     transfer_password = questionary.password(
@@ -131,20 +139,22 @@ def send_transfer_interactive(
     files = questionary.path(
         "Which files do you want to send? (separate multiple files with a space, default=example_files/test_file.txt)\n",
         default="examples/example_files/test_file.txt",
+        only_files=True,
+        
     ).ask()
     if files == "":
         files = "examples/example_files/test_file.txt"
     recipients = questionary.text(
         "Which email addresses do you want to send to? (separate multiple addresses with a space)\n",
-        validate=is_valid_email,
+        validate=is_valid_email_or_blank,
     ).ask()
     cc = questionary.text(
         "Which email addresses do you want to cc? (separate multiple addresses with a space)\n",
-        validate=is_valid_email,
+        validate=is_valid_email_or_blank,
     ).ask()
     bcc = questionary.text(
         "Which email addresses do you want to bcc? (separate multiple addresses with a space)\n",
-        validate=is_valid_email,
+        validate=is_valid_email_or_blank,
     ).ask()
     subject = questionary.text("What is the subject of the transfer? (blank=default Cryptshare subject)\n").ask()
     message = questionary.text(
@@ -194,10 +204,12 @@ def download_transfer_interactive(default_server_url, origin):
 
 
 def main():
+    load_dotenv()
+
     setup_logging()
     inputs = parse_args()
-    default_server_url = os.getenv("CRYPTSHARE_SERVER", "https://beta.cryptshare.com")
-    default_sender_email = os.getenv("CRYPTSHARE_SENDER_EMAIL", None)
+    default_server_url = os.getenv("CRYPTSHARE_SERVER", "http://localhost")
+    default_sender_email = os.getenv("CRYPTSHARE_SENDER_EMAIL", "")
     default_sender_name = os.getenv("CRYPTSHARE_SENDER_NAME", "REST-API Sender")
     default_sender_phone = os.getenv("CRYPTSHARE_SENDER_PHONE", "0")
     origin = os.getenv("CRYPTSHARE_CORS_ORIGIN", "https://localhost")

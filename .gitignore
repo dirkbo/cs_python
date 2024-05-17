@@ -5,6 +5,7 @@ store
 venv2
 .idea
 *.pyc
+.env
 *.sqlite3
 vmanage.py
 credentials.py
