@@ -58,6 +58,23 @@ def is_valid_server(server):
         return True
     return False
 
+def is_valid_tracking_id(tracking_id: str):
+    if tracking_id is None or tracking_id == "":
+        return True
+    # Regular expression for validating a tracking id
+    regex =r"[0-9]{8}-[0-9]{6}-.{8}"
+    if re.fullmatch(regex, tracking_id):
+        return True
+    return False
+
+def is_valid_transfer_id(transfer_id: str):
+    if transfer_id is None or transfer_id == "":
+        return False
+    # Regular expression for validating a transfer id
+    regex =r"[0-z]{10}"
+    if re.fullmatch(regex, transfer_id):
+        return True
+    return False
 
 def clean_expiration(date_string_value, default_days=2):
     """

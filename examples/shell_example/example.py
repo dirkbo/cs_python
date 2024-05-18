@@ -16,7 +16,8 @@ sys.path.insert(0, parentdir)
 from receive_transfer import receive_transfer
 from send_transfer import send_transfer
 from transfer_status import transfer_status
-from helpers import is_valid_email_or_blank, is_valid_server, is_valid_email, is_valid_expiration
+from helpers import is_valid_email_or_blank, is_valid_server, is_valid_email, is_valid_expiration, is_valid_tracking_id, \
+    is_valid_transfer_id
 
 logging.getLogger(__name__)
 LOGGING_CONFIG_FILE = "examples/shell_example/logging_config.json"
@@ -92,7 +93,8 @@ def transfer_status_interactive(default_server_url, default_sender_email, origin
     ).ask()
     if sender_email == "":
         sender_email = default_sender_email
-    transfer_transfer_id = questionary.text("Which transfer ID do you want to check the status of? (blank=all)\n").ask()
+    transfer_transfer_id = questionary.text("Which transfer ID do you want to check the status of? (blank=all)\n",
+                                            validate=is_valid_tracking_id).ask()
     transfer_status(origin, send_server, sender_email, transfer_transfer_id)
 
 
@@ -188,7 +190,10 @@ def download_transfer_interactive(default_server_url, origin):
         dl_server = default_server_url
     print(f"Downloading from {dl_server}")
 
-    recipient_transfer_id = questionary.text(f"Which transfer ID did you receive from {default_server_url}?\n").ask()
+    recipient_transfer_id = questionary.text(f"Which transfer ID did you receive from {default_server_url}?\n",
+                                             default="",
+                                             validate=is_valid_transfer_id,
+                                             ).ask()
     password = questionary.password(f"What is the PASSWORD for transfer {recipient_transfer_id}?\n").ask()
 
     default_path = recipient_transfer_id

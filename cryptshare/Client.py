@@ -25,10 +25,10 @@ class Client(ApiRequestHandler):
         "password_requirements": "/api/password/requirements",
         "password": "/api/password",
     }
-    store = {}
+    _client_store = {}
 
     def __init__(self, server, client_store_path="client_store.json", ssl_verify=True):
-        logger.debug(f"Initialising Cryptshare Client for server: {server}")
+        logger.info(f"Initialising Cryptshare Client for server: {server}")
         self._server = server
         self.client_store_path = client_store_path
         self.ssl_verify = ssl_verify
@@ -39,11 +39,11 @@ class Client(ApiRequestHandler):
 
     @property
     def server_hash(self):
-        return hashlib.shake_256(self.server.encode("utf-8")).hexdigest(16)
+        return hashlib.shake_256(self._server.encode("utf-8")).hexdigest(8)
 
     @server.setter
     def server(self, server: str):
-        logger.debug(f"Setting server to {server}")
+        logger.info(f"Setting server to {server}")
         self._server = server
 
     def api_path(self, path: str):
@@ -56,9 +56,9 @@ class Client(ApiRequestHandler):
     def set_email(self, email: str):
         logger.debug(f"Setting Cryptshare Client email to {email}")
         self.email_address = email
-        if self.email_address in self.store:
+        if self.email_address in self._client_store:
             logger.debug(f"Setting verification token for {email} from client store")
-            verification = self.store.get(self.email_address)
+            verification = self._client_store.get(self.email_address)
             self.header.set_verification(verification)
         else:
             logger.debug(f"No verification token found for {email}, not setting verification token")
@@ -67,19 +67,19 @@ class Client(ApiRequestHandler):
     def get_emails(self) -> list[str]:
         logger.debug("Getting emails from client store")
         return_list = []
-        for a in self.store:
+        for a in self._client_store:
             if "@" in a:
                 return_list.append(a)
         return return_list
 
     def delete_email(self, email: str):
         logger.debug(f"Deleting email {email} from client store")
-        if email in self.store:
-            self.store.remove(email)
+        if email in self._client_store:
+            self._client_store.remove(email)
 
     def request_code(self):
         path = self.api_path('users') + self.email_address + "/verification/code/email"
-        logger.debug(f"Requesting verification code for {self.email_address} from {path}")
+        logger.info(f"Requesting verification code for {self.email_address} from {path}")
         self._handle_response(
             requests.post(
                 path,
@@ -90,7 +90,7 @@ class Client(ApiRequestHandler):
 
     def verify_code(self, code: str):
         url = f"{self.api_path('users')}{self.email_address}/verification/token"
-        logger.debug(f"Verifying code {code} for {self.email_address} from {url} to obtain verification token")
+        logger.info(f"Verifying code {code} for {self.email_address} from {url} to obtain verification token")
         r = self._handle_response(
             requests.post(
                 url,
@@ -101,14 +101,14 @@ class Client(ApiRequestHandler):
         )
         verification_token = r.get("token")
         logger.debug(f"Storing verification token for {self.email_address} in client store")
-        self.store.update({self.email_address: verification_token})
+        self._client_store.update({self.email_address: verification_token})
         logger.debug(f"Setting verification token for {self.email_address} in client headers")
         self.header.set_verification(verification_token)
         return True
 
     def is_verified(self):
         path = f"{self.api_path('users')}{self.email_address}/verification"
-        logger.debug(f"Checking if {self.email_address} is verified from {path}")
+        logger.info(f"Checking if {self.email_address} is verified from {path}")
         # ToDO: Fix problem when cors header is present
         r = self._handle_response(
             requests.get(
@@ -121,7 +121,7 @@ class Client(ApiRequestHandler):
 
     def get_verification(self):
         path = f"{self.api_path('users')}{self.email_address}/verification"
-        logger.debug(f"Getting verification status for {self.email_address} from {path}")
+        logger.info(f"Getting verification status for {self.email_address} from {path}")
         # ToDO: Fix problem when cors header is present
         r = self._handle_response(
             requests.get(
@@ -134,7 +134,7 @@ class Client(ApiRequestHandler):
 
     def cors(self, origin: str):
         path = f"{self.api_path('products')}api.rest/cors"
-        logger.debug(f"Checking CORS for origin {origin} and {path}")
+        logger.info(f"Checking CORS for origin {origin} and {path}")
         self.header.set_origin(origin)
 
         r = self._handle_response(
@@ -163,7 +163,7 @@ class Client(ApiRequestHandler):
             ssl_verify=self.ssl_verify,
         )
         path = f"{self.api_path('users')}{self.email_address}/transfer-sessions"
-        logger.debug(f"Starting transfer for {self.email_address} from {path}")
+        logger.info(f"Starting transfer for {self.email_address} from {path}")
         r = self._handle_response(
             requests.post(
                 path,
@@ -178,7 +178,7 @@ class Client(ApiRequestHandler):
 
     def request_client_id(self):
         path = self.api_path('clients')
-        logger.debug(f"Requesting client ID from {path}")
+        logger.info(f"Requesting client ID from {path}")
         r = self._handle_response(
             requests.get(
                 path,
@@ -189,7 +189,7 @@ class Client(ApiRequestHandler):
         logger.debug("Storing client ID in client store")
         self.header.set_client_id(r.get("clientId"))
         logger.debug("Setting client ID in client headers")
-        self.store.update({"X-CS-ClientId": r.get("clientId")})
+        self._client_store.update({"X-CS-ClientId": r.get("clientId")})
 
     @property
     def server_client_store_path(self):
@@ -203,11 +203,11 @@ class Client(ApiRequestHandler):
         try:
             with open(self.server_client_store_path, "r") as json_file:
                 try:
-                    self.store = json.load(json_file)
+                    self._client_store = json.load(json_file)
                 except Exception as e:
                     print(f"Failed to read store: {e}")
-            if "X-CS-ClientId" in self.store:
-                self.header.set_client_id(self.store.get("X-CS-ClientId"))
+            if "X-CS-ClientId" in self._client_store:
+                self.header.set_client_id(self._client_store.get("X-CS-ClientId"))
         except IOError:
             logger.warning(f"Failed to read client store from {self.server_client_store_path}")
             return ""
@@ -216,14 +216,14 @@ class Client(ApiRequestHandler):
         logger.debug(f"Writing client store to {self.server_client_store_path}")
         try:
             with open(self.server_client_store_path, "w") as outfile:
-                json.dump(self.store, outfile, indent=4)
+                json.dump(self._client_store, outfile, indent=4)
             outfile.close()
         except IOError:
             logger.warning(f"Failed to write client store to {self.server_client_store_path}")
 
     def get_password_rules(self):
         path =self.api_path('password_requirements')
-        logger.debug(f"Getting password rules from {path}")
+        logger.info(f"Getting password rules from {path}")
         r = self._handle_response(
             requests.get(
                 path,
@@ -235,7 +235,7 @@ class Client(ApiRequestHandler):
 
     def get_transfers(self):
         path = self.api_path('users') + self.email_address + "/transfers"
-        logger.debug(f"Getting transfers for {self.email_address} from {path}")
+        logger.info(f"Getting transfers for {self.email_address} from {path}")
         r = self._handle_response(
             requests.get(
                 path,
@@ -247,7 +247,7 @@ class Client(ApiRequestHandler):
 
     def validate_password(self, password):
         path = self.api_path('password')
-        logger.debug(f"Validating password for {self.email_address} from {path}")
+        logger.info(f"Validating password for {self.email_address} from {path}")
         r = self._handle_response(
             requests.post(
                 path,
@@ -260,7 +260,7 @@ class Client(ApiRequestHandler):
 
     def get_password(self):
         path = self.api_path('password')
-        logger.debug(f"Getting generated password from {path}")
+        logger.info(f"Getting generated password from {path}")
         r = self._handle_response(
             requests.get(
                 path,
@@ -272,7 +272,7 @@ class Client(ApiRequestHandler):
 
     def get_policy(self, recipients):
         path = self.api_path('users') + self.email_address + "/transfer-policy"
-        logger.debug(f"Getting policy for {self.email_address} and  {recipients} from {path}")
+        logger.info(f"Getting policy for {self.email_address} and  {recipients} from {path}")
         r = self._handle_response(
             requests.post(
                 path,
@@ -285,4 +285,4 @@ class Client(ApiRequestHandler):
 
     def download(self, transfer_id, password) -> Download:
         logger.debug(f"Downloading transfer {transfer_id} from {self._server}")
-        return Download.Download(self.api_path("users"), self.header, transfer_id, password, ssl_verify=self.ssl_verify)
+        return Download.Download(self.server, self.header, transfer_id, password, ssl_verify=self.ssl_verify)
