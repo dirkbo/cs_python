@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 class CryptshareClient(ApiRequestHandler):
     header = CryptshareHeader()
-    email_address = ""
+    _sender: CryptshareSender = None
     _server = ""
     _api_paths = {
         "users": "/api/users/",
@@ -58,16 +58,25 @@ class CryptshareClient(ApiRequestHandler):
         logger.debug("Resetting headers")
         self.header = CryptshareHeader()
 
-    def set_email(self, email: str):
-        logger.debug(f"Setting Cryptshare Client email to {email}")
-        self.email_address = email
-        if self.email_address in self._client_store:
-            logger.debug(f"Setting verification token for {email} from client store")
-            verification = self._client_store.get(self.email_address)
+    def set_sender(self, sender_email: str, sender_name: str = "REST-API Sender", sender_phone: str = "0"):
+        logger.debug(f"Setting Cryptshare Client sender to {sender_email}")
+        self.read_client_store()
+        self._sender = CryptshareSender(sender_name, sender_phone, sender_email)
+        if sender_email in self._client_store:
+            logger.debug(f"Setting verification token for {sender_email} from client store")
+            verification = self._client_store.get(sender_email)
             self.header.verification_token = verification
         else:
-            logger.debug(f"No verification token found for {email}, not setting verification token")
+            logger.debug(f"No verification token found for {sender_email}, not setting verification token")
             self.header.verification_token = ""
+
+    @property
+    def sender(self) -> CryptshareSender:
+        return self._sender
+
+    @property
+    def sender_email(self) -> str:
+        return self._sender.email
 
     def get_emails(self) -> list[str]:
         logger.debug("Getting emails from client store")
@@ -83,8 +92,8 @@ class CryptshareClient(ApiRequestHandler):
             self._client_store.remove(email)
 
     def request_code(self) -> None:
-        path = self.api_path("users") + self.email_address + "/verification/code/email"
-        logger.info(f"Requesting verification code for {self.email_address} from {path}")
+        path = self.api_path("users") + self.sender_email + "/verification/code/email"
+        logger.info(f"Requesting verification code for {self.sender_email} from {path}")
         self._handle_response(
             requests.post(
                 path,
@@ -94,8 +103,8 @@ class CryptshareClient(ApiRequestHandler):
         )
 
     def verify_code(self, code: str) -> bool:
-        url = f"{self.api_path('users')}{self.email_address}/verification/token"
-        logger.info(f"Verifying code {code} for {self.email_address} from {url} to obtain verification token")
+        url = f"{self.api_path('users')}{self.sender_email}/verification/token"
+        logger.info(f"Verifying code {code} for {self.sender_email} from {url} to obtain verification token")
         r = self._handle_response(
             requests.post(
                 url,
@@ -105,15 +114,15 @@ class CryptshareClient(ApiRequestHandler):
             )
         )
         verification_token = r.get("token")
-        logger.debug(f"Storing verification token for {self.email_address} in client store")
-        self._client_store.update({self.email_address: verification_token})
-        logger.debug(f"Setting verification token for {self.email_address} in client headers")
+        logger.debug(f"Storing verification token for {self.sender_email} in client store")
+        self._client_store.update({self.sender_email: verification_token})
+        logger.debug(f"Setting verification token for {self.sender_email} in client headers")
         self.header.verification_token = verification_token
         return True
 
     def is_verified(self) -> bool:
-        path = f"{self.api_path('users')}{self.email_address}/verification"
-        logger.info(f"Checking if {self.email_address} is verified from {path}")
+        path = f"{self.api_path('users')}{self.sender_email}/verification"
+        logger.info(f"Checking if {self.sender_email} is verified from {path}")
 
         r = self._handle_response(
             requests.get(
@@ -125,8 +134,8 @@ class CryptshareClient(ApiRequestHandler):
         return r.get("verified", False)
 
     def get_verification(self) -> dict:
-        path = f"{self.api_path('users')}{self.email_address}/verification"
-        logger.info(f"Getting verification status for {self.email_address} from {path}")
+        path = f"{self.api_path('users')}{self.sender_email}/verification"
+        logger.info(f"Getting verification status for {self.sender_email} from {path}")
 
         r = self._handle_response(
             requests.get(
@@ -158,7 +167,7 @@ class CryptshareClient(ApiRequestHandler):
         return False
 
     def start_transfer(self, recipients, settings: TransferSettings) -> Transfer:
-        logger.debug(f"Starting transfer for {self.email_address} to {recipients} with settings {settings}")
+        logger.debug(f"Starting transfer for {self.sender_email} to {recipients} with settings {settings}")
         transfer = Transfer(
             self.header,
             recipients.get("to"),
@@ -167,8 +176,8 @@ class CryptshareClient(ApiRequestHandler):
             settings,
             ssl_verify=self.ssl_verify,
         )
-        path = f"{self.api_path('users')}{self.email_address}/transfer-sessions"
-        logger.info(f"Starting transfer for {self.email_address} from {path}")
+        path = f"{self.api_path('users')}{self.sender_email}/transfer-sessions"
+        logger.info(f"Starting transfer for {self.sender_email} from {path}")
         r = self._handle_response(
             requests.post(
                 path,
@@ -239,8 +248,8 @@ class CryptshareClient(ApiRequestHandler):
         return r
 
     def get_transfers(self) -> dict:
-        path = self.api_path("users") + self.email_address + "/transfers"
-        logger.info(f"Getting transfers for {self.email_address} from {path}")
+        path = self.api_path("users") + self.sender_email + "/transfers"
+        logger.info(f"Getting transfers for {self.sender_email} from {path}")
         r = self._handle_response(
             requests.get(
                 path,
@@ -252,7 +261,7 @@ class CryptshareClient(ApiRequestHandler):
 
     def validate_password(self, password):
         path = self.api_path("password")
-        logger.info(f"Validating password for {self.email_address} from {path}")
+        logger.info(f"Validating password for {self.sender_email} from {path}")
         r = self._handle_response(
             requests.post(
                 path,
@@ -276,8 +285,8 @@ class CryptshareClient(ApiRequestHandler):
         return r
 
     def get_policy(self, recipients):
-        path = self.api_path("users") + self.email_address + "/transfer-policy"
-        logger.info(f"Getting policy for {self.email_address} and  {recipients} from {path}")
+        path = self.api_path("users") + self.sender_email + "/transfer-policy"
+        logger.info(f"Getting policy for {self.sender_email} and  {recipients} from {path}")
         r = self._handle_response(
             requests.post(
                 path,
@@ -292,12 +301,55 @@ class CryptshareClient(ApiRequestHandler):
         logger.debug(f"Downloading transfer {transfer_id} from {self._server}")
         return CryptshareDownload(self, transfer_id, password)
 
+    def transfer_status(
+            self,
+            transfer_transfer_id: str = None,
+            sender_name: str = None,
+            sender_phone: str = None,
+            sender_email: str = None,
+    ):
+        #  Reads existing verifications from the 'store' file if any
+        self.read_client_store()
+
+        #  request client id from server if no client id exists
+        #  Both branches also react on the REST API not licensed
+        if self.exists_client_id() is False:
+            self.request_client_id()
+
+        if self._sender is None:
+            if sender_email is None:
+                print("Sender email is required.")
+                return
+            sender = CryptshareSender(sender_name, sender_phone, sender_email)
+            sender.setup_and_verify_sender(self)
+            self._sender = sender
+
+        if transfer_transfer_id is None:
+            all_transfers = self.get_transfers()
+            logger.debug("Transfer status for all transfers\n")
+            transfer_status_list = []
+            for list_transfer in all_transfers:
+                tracking_id = list_transfer["trackingId"]
+                print(f"Transfer status for Tracking ID {tracking_id}:")
+                transfer = Transfer(self.header, [], [], [], TransferSettings(self.sender_email))
+                status_location = f"{self.server}/api/users/{self.sender_email}/transfers/{tracking_id}"
+                transfer.set_location(status_location)
+                transfer = transfer.get_transfer_status()
+                status = {"trackingID": tracking_id, "status": transfer["status"]}
+                transfer_status_list.append(status)
+            return transfer_status_list
+
+        logger.debug(f"Transfer status for transfer {transfer_transfer_id}\n")
+        transfer = Transfer(self.header, [], [], [], TransferSettings(self.sender_email))
+        status_location = f"{self.api_path("users")}{self.sender_email}/transfers/{transfer_transfer_id}"
+        transfer.set_location(status_location)
+        transfer = transfer.get_transfer_status()
+        status = transfer["status"]
+        return status
+
     def send_transfer(
         self,
         origin,
-        sender_email: str,
-        sender_name: str,
-        sender_phone: str,
         transfer_password: str,
         expiration_date: datetime,
         files: str,
@@ -306,6 +358,9 @@ class CryptshareClient(ApiRequestHandler):
         bcc: list[str] = None,
         subject: str = "",
         message: str = "",
+        sender_email: str = None,
+        sender_name: str = "",
+        sender_phone: str = "",
     ) -> None:
         """ Send a transfer using the Cryptshare server.
         """
@@ -334,8 +389,13 @@ class CryptshareClient(ApiRequestHandler):
             # Check CORS state for a specific origin.
             self.cors(origin)
 
-        sender = CryptshareSender(sender_name, sender_phone, sender_email)
-        sender.setup_and_verify_sender(self)
+        if self._sender is None:
+            if sender_email is None:
+                print("Sender email is required.")
+                return
+            sender = CryptshareSender(sender_name, sender_phone, sender_email)
+            sender.setup_and_verify_sender(self)
+            self._sender = sender
 
         # ToDo: show password rules to user, when asking for password
         transfer_security_mode = SecurityMode(password=transfer_password, mode="MANUAL")
@@ -363,7 +423,7 @@ class CryptshareClient(ApiRequestHandler):
         subject = subject if subject != "" else None
         notification = NotificationMessage(message, subject)
         settings = TransferSettings(
-            sender,
+            self._sender,
             notification_message=notification,
             send_download_notifications=True,
             security_mode=transfer_security_mode,

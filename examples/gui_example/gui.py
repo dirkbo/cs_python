@@ -262,7 +262,7 @@ def main():
         expiration_date,
     ) = ui(cryptshare_client)
     #  determine sender
-    cryptshare_client.set_email(sender_address)
+    cryptshare_client.set_sender(sender_address, "REST by Python", "+4976138913100")
     # request verification for sender if not verified already
     if cryptshare_client.is_verified() is False:
         cryptshare_client.request_code()
@@ -274,7 +274,7 @@ def main():
     # passwort_validated_response = cryptshare_client.validate_password("happyday123asd")
     # policy_response = cryptshare_client.get_policy(["python@domain.com"])
     #  Transfer definition
-    sender = Sender.CryptshareSender("REST by Python", +4976138913100)
+    sender = cryptshare_client.sender
     settings = Settings.TransferSettings(
         sender,
         expiration_date,

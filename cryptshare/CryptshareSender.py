@@ -16,6 +16,11 @@ class CryptshareSender:
         self._phone = phone
         self._email = email
 
+    @property
+    def email(self) -> str:
+        logger.debug("Returning Sender email")
+        return self._email
+
     def data(self) -> dict:
         logger.debug("Returning Sender data as dictionary")
         return {"name": self._name, "phone": self._phone, "email": self._email}
@@ -30,6 +35,7 @@ class CryptshareSender:
             print("Verification failed.")
             return False
         print(f"Sender {self._email} is verified until {verification['validUntil']}.")
+        cryptshare_client.write_client_store()
         return True
 
     def setup_and_verify_sender(
@@ -56,7 +62,9 @@ class CryptshareSender:
             self._phone = phone
         if email:
             self._email = email
-        cryptshare_client.set_email(self._email)
+
+        cryptshare_client.read_client_store()
+        cryptshare_client.set_sender(self._email, self._name, self._phone)
 
         verification = cryptshare_client.get_verification()
         if verification["verified"] is True:

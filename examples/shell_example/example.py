@@ -264,11 +264,9 @@ def main():
         expiration_date = clean_expiration(inputs.expiration)
 
         client = CryptshareClient(default_server_url)
+        client.set_sender(default_sender_email, default_sender_name, default_sender_phone)
         client.send_transfer(
             origin,
-            default_sender_email,
-            default_sender_name,
-            default_sender_phone,
             new_transfer_password,
             expiration_date,
             files,
@@ -286,7 +284,9 @@ def main():
         receive_transfer(origin, default_server_url, recipient_transfer_id, password, save_path)
         return
     elif inputs.mode == "status":
-        transfer_status(default_server_url, default_sender_email, inputs.status)
+        client = CryptshareClient(default_server_url)
+        client.set_sender(default_sender_email, default_sender_name, default_sender_phone)
+        transfer_status(client, inputs.transfer)
         return
     while True:
         mode = interactive_user_choice()

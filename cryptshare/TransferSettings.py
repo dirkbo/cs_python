@@ -1,12 +1,14 @@
 import logging
 
+from cryptshare import CryptshareSender
+
 logger = logging.getLogger(__name__)
 
 
 class TransferSettings:
     def __init__(
         self,
-        sender,
+        sender: CryptshareSender,
         expiration_date=None,
         notification_message=None,
         file_checksum_algorithm=None,
