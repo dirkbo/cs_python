@@ -2,33 +2,8 @@ import logging
 import os
 import re
 from datetime import datetime, timedelta
-import questionary
 
 logger = logging.getLogger(__name__)
-
-
-def verify_sender(cryptshare_client, sender_email):
-    """
-    This function is used to verify the sender email address.
-
-    :param cryptshare_client: The Cryptshare client instance.
-    :param sender_email: The sender email address.
-    :return: None
-
-    The function checks if the sender email address is already verified. If not, it requests a verification code and verifies the sender email address.
-    """
-    verification = cryptshare_client.get_verification()
-    if verification["verified"] is True:
-        print(f"Sender {sender_email} is verified until {verification['validUntil']}.")
-    else:
-        cryptshare_client.request_code()
-        verification_code = questionary.text(
-            f"Please enter the verification code sent to your email address ({sender_email}):\n"
-        ).ask()
-        cryptshare_client.verify_code(verification_code.strip())
-        if cryptshare_client.is_verified() is not True:
-            print("Verification failed.")
-    return verification
 
 
 def is_valid_email_or_blank(email):
@@ -58,23 +33,26 @@ def is_valid_server(server):
         return True
     return False
 
+
 def is_valid_tracking_id(tracking_id: str):
     if tracking_id is None or tracking_id == "":
         return True
     # Regular expression for validating a tracking id
-    regex =r"[0-9]{8}-[0-9]{6}-.{8}"
+    regex = r"[0-9]{8}-[0-9]{6}-.{8}"
     if re.fullmatch(regex, tracking_id):
         return True
     return False
+
 
 def is_valid_transfer_id(transfer_id: str):
     if transfer_id is None or transfer_id == "":
         return False
     # Regular expression for validating a transfer id
-    regex =r"[0-z]{10}"
+    regex = r"[0-z]{10}"
     if re.fullmatch(regex, transfer_id):
         return True
     return False
+
 
 def clean_expiration(date_string_value, default_days=2):
     """

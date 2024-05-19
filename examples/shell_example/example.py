@@ -12,12 +12,21 @@ from dotenv import load_dotenv
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 parentdir = os.path.dirname(os.path.dirname(currentdir))
 sys.path.insert(0, parentdir)
+from cryptshare import CryptshareClient
 
 from receive_transfer import receive_transfer
 from send_transfer import send_transfer
 from transfer_status import transfer_status
-from helpers import is_valid_email_or_blank, is_valid_server, is_valid_email, is_valid_expiration, is_valid_tracking_id, \
-    is_valid_transfer_id
+from helpers import (
+    is_valid_email_or_blank,
+    is_valid_server,
+    is_valid_email,
+    is_valid_expiration,
+    is_valid_tracking_id,
+    is_valid_transfer_id,
+    clean_string_list,
+    clean_expiration,
+)
 
 logging.getLogger(__name__)
 LOGGING_CONFIG_FILE = "examples/shell_example/logging_config.json"
@@ -93,8 +102,9 @@ def transfer_status_interactive(default_server_url, default_sender_email, origin
     ).ask()
     if sender_email == "":
         sender_email = default_sender_email
-    transfer_transfer_id = questionary.text("Which transfer ID do you want to check the status of? (blank=all)\n",
-                                            validate=is_valid_tracking_id).ask()
+    transfer_transfer_id = questionary.text(
+        "Which transfer ID do you want to check the status of? (blank=all)\n", validate=is_valid_tracking_id
+    ).ask()
     transfer_status(origin, send_server, sender_email, transfer_transfer_id)
 
 
@@ -143,7 +153,8 @@ def send_transfer_interactive(
     ).ask()
     files = questionary.path(
         "Which files do you want to send? (separate multiple files with a space, default=example_files/test_file.txt)\n",
-        default="examples/example_files/test_file.txt",    ).ask()
+        default="examples/example_files/test_file.txt",
+    ).ask()
     if files == "":
         files = "examples/example_files/test_file.txt"
     recipients = questionary.text(
@@ -190,10 +201,11 @@ def download_transfer_interactive(default_server_url, origin):
         dl_server = default_server_url
     print(f"Downloading from {dl_server}")
 
-    recipient_transfer_id = questionary.text(f"Which transfer ID did you receive from {default_server_url}?\n",
-                                             default="",
-                                             validate=is_valid_transfer_id,
-                                             ).ask()
+    recipient_transfer_id = questionary.text(
+        f"Which transfer ID did you receive from {default_server_url}?\n",
+        default="",
+        validate=is_valid_transfer_id,
+    ).ask()
     password = questionary.password(f"What is the PASSWORD for transfer {recipient_transfer_id}?\n").ask()
 
     default_path = recipient_transfer_id
@@ -229,21 +241,43 @@ def main():
 
     if inputs.mode == "send":
         new_transfer_password = inputs.password
-        send_transfer(
+        # send_transfer(
+        #     origin,
+        #     default_server_url,
+        #     default_sender_email,
+        #     default_sender_name,
+        #     default_sender_phone,
+        #     new_transfer_password,
+        #     inputs.expiration,
+        #     inputs.file,
+        #     inputs.to,
+        #     cc=inputs.cc,
+        #     bcc=inputs.bcc,
+        #     subject=inputs.subject,
+        #     message=inputs.message,
+        #     recipient_sms_phones=inputs.sms_recipient,
+        # )
+        files = clean_string_list(inputs.file)
+        recipients = clean_string_list(inputs.to)
+        cc = clean_string_list(inputs.cc)
+        bcc = clean_string_list(inputs.bcc)
+        expiration_date = clean_expiration(inputs.expiration)
+
+        client = CryptshareClient(default_server_url)
+        client.send_transfer(
             origin,
             default_server_url,
             default_sender_email,
             default_sender_name,
             default_sender_phone,
             new_transfer_password,
-            inputs.expiration,
-            inputs.file,
-            inputs.to,
-            cc=inputs.cc,
-            bcc=inputs.bcc,
+            expiration_date,
+            files,
+            recipients,
+            cc=cc,
+            bcc=bcc,
             subject=inputs.subject,
             message=inputs.message,
-            recipient_sms_phones=inputs.sms_recipient,
         )
         return
     elif inputs.mode == "receive":

@@ -239,7 +239,7 @@ def display_transfer_information(transfer_settings):
 
 def main():
     #  Set server URL
-    cryptshare_client = CryptshareClient.Client(cryptshare_server_url, ssl_verify=False)
+    cryptshare_client = CryptshareClient.CryptshareClient(cryptshare_server_url, ssl_verify=False)
 
     #  Reads existing verifications from the 'store' file if any
     cryptshare_client.read_client_store()
@@ -274,7 +274,7 @@ def main():
     # passwort_validated_response = cryptshare_client.validate_password("happyday123asd")
     # policy_response = cryptshare_client.get_policy(["python@domain.com"])
     #  Transfer definition
-    sender = Sender.Sender("REST by Python", +4976138913100)
+    sender = Sender.CryptshareSender("REST by Python", +4976138913100)
     settings = Settings.TransferSettings(
         sender,
         expiration_date,
@@ -304,7 +304,7 @@ def main():
     cryptshare_client.write_client_store()
 
     #  Create a Download object to perform downloads on.
-    cryptshare_client.download("pq7KbAIvL9", "Hb$uciWr")
+    cryptshare_client.download_transfer("pq7KbAIvL9", "Hb$uciWr")
 
     print(pre_transfer_info)
     print(post_transfer_info)

@@ -66,7 +66,7 @@ class Transfer(ApiRequestHandler):
             requests.post(
                 self.location + "/files",
                 verify=self.ssl_verify,
-                headers=self.header,
+                headers=self.header.request_header,
                 json=file.data(),
             )
         )
@@ -86,7 +86,7 @@ class Transfer(ApiRequestHandler):
 
     def get_sender(self):
         logger.debug("Getting sender")
-        return {"name": self.sender.name, "phone": self.sender.phone}
+        return self.sender.data()
 
     def get_data(self):
         logger.debug("Getting transfer data")
@@ -94,7 +94,9 @@ class Transfer(ApiRequestHandler):
 
     def get_transfer_settings(self):
         logger.debug("Getting transfer settings")
-        r = self._handle_response(requests.get(self.location, verify=self.ssl_verify, headers=self.header))
+        r = self._handle_response(
+            requests.get(self.location, verify=self.ssl_verify, headers=self.header.request_header)
+        )
         return r
 
     def edit_transfer_settings(self, transfer_settings):
@@ -104,18 +106,22 @@ class Transfer(ApiRequestHandler):
                 self.location,
                 json=transfer_settings.data(),
                 verify=self.ssl_verify,
-                headers=self.header,
+                headers=self.header.request_header,
             )
         )
         return r
 
     def send_transfer(self):
         logger.debug("Sending transfer")
-        r = self._handle_response(requests.post(self.location, verify=self.ssl_verify, headers=self.header))
+        r = self._handle_response(
+            requests.post(self.location, verify=self.ssl_verify, headers=self.header.request_header)
+        )
         self.location = r
         return r
 
     def get_transfer_status(self):
         logger.debug("Getting transfer status")
-        r = self._handle_response(requests.get(self.location, verify=self.ssl_verify, headers=self.header))
+        r = self._handle_response(
+            requests.get(self.location, verify=self.ssl_verify, headers=self.header.request_header)
+        )
         return r

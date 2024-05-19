@@ -41,7 +41,7 @@ class TransferSettings:
         self.security_mode = security_mode
 
     def data(self):
-        logger.debug("Returning TransferSettings data")
+        logger.debug("Returning TransferSettings data as dict")
         return_dict = {
             "notificationMessage": self.notification_message.data(),
             "recipientLanguage": self.recipient_language,

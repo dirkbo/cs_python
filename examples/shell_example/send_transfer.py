@@ -1,6 +1,8 @@
 import logging
 import itertools
 
+import questionary
+
 from helpers import (
     clean_expiration,
     clean_string_list,
@@ -8,14 +10,34 @@ from helpers import (
     twilio_sms_is_configured,
 )
 
-from cryptshare.Client import Client as CryptshareClient
+from cryptshare import CryptshareClient, CryptshareSender
 from cryptshare.NotificationMessage import NotificationMessage
 from cryptshare.SecurityMode import SecurityMode
-from cryptshare.Sender import Sender as CryptshareSender
 from cryptshare.TransferSettings import TransferSettings
-from examples.shell_example.helpers import verify_sender
 
 logger = logging.getLogger(__name__)
+
+
+class QuestionaryCryptshareSender(CryptshareSender):
+    def verify_sender_email_verification(self, cryptshare_client: CryptshareClient):
+        """
+        Perform an email verification of the sender. Requires User Input.
+        Overwritten from CryptshareSender to use questionary for user input.
+
+        :param cryptshare_client: The Cryptshare client instance.
+        :return: bool, True if the sender is verified, False otherwise
+        """
+        cryptshare_client.request_code()
+        verification_code = questionary.text(
+            f"Please enter the verification code sent to your email address ({self._email}):\n"
+        ).ask()
+        cryptshare_client.verify_code(verification_code.strip())
+        verification = cryptshare_client.get_verification()
+        if verification.get("verified") is not True:
+            print("Verification failed.")
+            return False
+        print(f"Sender {self._email} is verified until {verification['validUntil']}.")
+        return True
 
 
 def send_transfer(
@@ -58,7 +80,6 @@ def send_transfer(
 
     #  Reads existing verifications from the 'store' file if any
     cryptshare_client.read_client_store()
-    cryptshare_client.set_email(sender_email)
 
     #  request client id from server if no client id exists
     #  Both branches also react on the REST API not licensed
@@ -66,11 +87,10 @@ def send_transfer(
         cryptshare_client.request_client_id()
     else:
         # Check CORS state for a specific origin.
-        # cryptshare_client.cors(origin)
-        # ToDo: After cors check, client verification from store is not working anymore
-        pass
+        cryptshare_client.cors(origin)
 
-    verify_sender(cryptshare_client, sender_email)
+    sender = CryptshareSender(sender_name, sender_phone, sender_email)
+    sender.setup_and_verify_sender(cryptshare_client)
 
     send_password_sms = False
     if twilio_sms_is_configured() and recipient_sms_phones is not None:
@@ -114,7 +134,6 @@ def send_transfer(
         return
 
     #  Transfer definition
-    sender = CryptshareSender(sender_name, sender_phone)
     subject = subject if subject != "" else None
     notification = NotificationMessage(message, subject)
     settings = TransferSettings(

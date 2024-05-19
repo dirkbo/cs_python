@@ -6,13 +6,13 @@ import typing
 import requests
 
 from cryptshare.ApiRequestHandler import ApiRequestHandler
-from cryptshare.Header import Header
+from cryptshare.CryptshareHeader import CryptshareHeader
 
 logger = logging.getLogger(__name__)
 
 
 class TransferFile(ApiRequestHandler):
-    def __init__(self, path: str, header: Header, ssl_verify: bool):
+    def __init__(self, path: str, header: CryptshareHeader, ssl_verify: bool):
         logger.debug(f"Initialising Cryptshare TransferFile object for file: {path}")
         self.size = os.stat(path).st_size
         self.name = os.path.basename(path)
@@ -53,12 +53,14 @@ class TransferFile(ApiRequestHandler):
                 self.location + "/content",
                 data=data,
                 verify=self.ssl_verify,
-                headers=self.header,
+                headers=self.header.request_header,
             )
         )
         return True
 
     def delete_upload(self):
         logger.debug(f"Deleting uploaded file {self.name} from {self.location}")
-        self._handle_response(requests.delete(self.location, verify=self.ssl_verify, headers=self.header))
+        self._handle_response(
+            requests.delete(self.location, verify=self.ssl_verify, headers=self.header.request_header)
+        )
         return True

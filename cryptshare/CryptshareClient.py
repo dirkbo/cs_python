@@ -1,27 +1,32 @@
 import hashlib
+import itertools
 import json
 import logging
 import os
+from datetime import datetime
 
 import requests
 
-import cryptshare.Download as Download
-import cryptshare.Header as CryptshareHeader
-import cryptshare.Transfer as Transfer
-import cryptshare.TransferSettings as TransferSettings
+from cryptshare.CryptshareDownload import CryptshareDownload
+from cryptshare.CryptshareSender import CryptshareSender
+from cryptshare.CryptshareHeader import CryptshareHeader
+from cryptshare.Transfer import Transfer
+from cryptshare.TransferSettings import TransferSettings
 from cryptshare.ApiRequestHandler import ApiRequestHandler
+from cryptshare.NotificationMessage import NotificationMessage
+from cryptshare.SecurityMode import SecurityMode
 
 logger = logging.getLogger(__name__)
 
 
-class Client(ApiRequestHandler):
-    header = CryptshareHeader.Header()
+class CryptshareClient(ApiRequestHandler):
+    header = CryptshareHeader()
     email_address = ""
     _server = ""
     _api_paths = {
         "users": "/api/users/",
         "clients": "/api/clients",
-        "products": "/api/users/products/",
+        "products": "/api/products/",
         "password_requirements": "/api/password/requirements",
         "password": "/api/password",
     }
@@ -51,7 +56,7 @@ class Client(ApiRequestHandler):
 
     def reset_headers(self):
         logger.debug("Resetting headers")
-        self.header = CryptshareHeader.Header()
+        self.header = CryptshareHeader()
 
     def set_email(self, email: str):
         logger.debug(f"Setting Cryptshare Client email to {email}")
@@ -59,10 +64,10 @@ class Client(ApiRequestHandler):
         if self.email_address in self._client_store:
             logger.debug(f"Setting verification token for {email} from client store")
             verification = self._client_store.get(self.email_address)
-            self.header.set_verification(verification)
+            self.header.verification_token = verification
         else:
             logger.debug(f"No verification token found for {email}, not setting verification token")
-            self.header.set_verification("")
+            self.header.verification_token = ""
 
     def get_emails(self) -> list[str]:
         logger.debug("Getting emails from client store")
@@ -78,13 +83,13 @@ class Client(ApiRequestHandler):
             self._client_store.remove(email)
 
     def request_code(self):
-        path = self.api_path('users') + self.email_address + "/verification/code/email"
+        path = self.api_path("users") + self.email_address + "/verification/code/email"
         logger.info(f"Requesting verification code for {self.email_address} from {path}")
         self._handle_response(
             requests.post(
                 path,
                 verify=self.ssl_verify,
-                headers=self.header.general,
+                headers=self.header.request_header,
             )
         )
 
@@ -96,25 +101,25 @@ class Client(ApiRequestHandler):
                 url,
                 json={"verificationCode": code},
                 verify=self.ssl_verify,
-                headers=self.header.general,
+                headers=self.header.request_header,
             )
         )
         verification_token = r.get("token")
         logger.debug(f"Storing verification token for {self.email_address} in client store")
         self._client_store.update({self.email_address: verification_token})
         logger.debug(f"Setting verification token for {self.email_address} in client headers")
-        self.header.set_verification(verification_token)
+        self.header.verification_token = verification_token
         return True
 
     def is_verified(self):
         path = f"{self.api_path('users')}{self.email_address}/verification"
         logger.info(f"Checking if {self.email_address} is verified from {path}")
-        # ToDO: Fix problem when cors header is present
+
         r = self._handle_response(
             requests.get(
                 path,
                 verify=self.ssl_verify,
-                headers=self.header.general,
+                headers=self.header.request_header,
             )
         )
         return r.get("verified")
@@ -122,12 +127,12 @@ class Client(ApiRequestHandler):
     def get_verification(self):
         path = f"{self.api_path('users')}{self.email_address}/verification"
         logger.info(f"Getting verification status for {self.email_address} from {path}")
-        # ToDO: Fix problem when cors header is present
+
         r = self._handle_response(
             requests.get(
                 path,
                 verify=self.ssl_verify,
-                headers=self.header.general,
+                headers=self.header.request_header,
             )
         )
         return r
@@ -135,27 +140,27 @@ class Client(ApiRequestHandler):
     def cors(self, origin: str):
         path = f"{self.api_path('products')}api.rest/cors"
         logger.info(f"Checking CORS for origin {origin} and {path}")
-        self.header.set_origin(origin)
+        self.header.origin = origin
 
         r = self._handle_response(
             requests.get(
                 path,
                 verify=self.ssl_verify,
-                headers=self.header.general,
+                headers=self.header.request_header_cors,
             )
         )
         logger.info(f"CORS is active for origin {origin}: {r.get('active')}")
 
     def exists_client_id(self) -> bool:
         logger.debug("Checking if client ID exists in Headers")
-        if "X-CS-ClientId" in self.header.general:
+        if "X-CS-ClientId" in self.header.request_header:
             return True
         return False
 
-    def start_transfer(self, recipients, settings: TransferSettings.TransferSettings):
+    def start_transfer(self, recipients, settings: TransferSettings):
         logger.debug(f"Starting transfer for {self.email_address} to {recipients} with settings {settings}")
-        transfer = Transfer.Transfer(
-            self.header.general,
+        transfer = Transfer(
+            self.header,
             recipients.get("to"),
             recipients.get("cc"),
             recipients.get("bcc"),
@@ -177,17 +182,17 @@ class Client(ApiRequestHandler):
         return transfer
 
     def request_client_id(self):
-        path = self.api_path('clients')
+        path = self.api_path("clients")
         logger.info(f"Requesting client ID from {path}")
         r = self._handle_response(
             requests.get(
                 path,
                 verify=self.ssl_verify,
-                headers=self.header.general,
+                headers=self.header.request_header,
             )
         )
         logger.debug("Storing client ID in client store")
-        self.header.set_client_id(r.get("clientId"))
+        self.header.client_id = r.get("clientId")
         logger.debug("Setting client ID in client headers")
         self._client_store.update({"X-CS-ClientId": r.get("clientId")})
 
@@ -207,7 +212,7 @@ class Client(ApiRequestHandler):
                 except Exception as e:
                     print(f"Failed to read store: {e}")
             if "X-CS-ClientId" in self._client_store:
-                self.header.set_client_id(self._client_store.get("X-CS-ClientId"))
+                self.header.client_id = self._client_store.get("X-CS-ClientId")
         except IOError:
             logger.warning(f"Failed to read client store from {self.server_client_store_path}")
             return ""
@@ -222,31 +227,31 @@ class Client(ApiRequestHandler):
             logger.warning(f"Failed to write client store to {self.server_client_store_path}")
 
     def get_password_rules(self):
-        path =self.api_path('password_requirements')
+        path = self.api_path("password_requirements")
         logger.info(f"Getting password rules from {path}")
         r = self._handle_response(
             requests.get(
                 path,
                 verify=self.ssl_verify,
-                headers=self.header.general,
+                headers=self.header.request_header,
             )
         )
         return r
 
     def get_transfers(self):
-        path = self.api_path('users') + self.email_address + "/transfers"
+        path = self.api_path("users") + self.email_address + "/transfers"
         logger.info(f"Getting transfers for {self.email_address} from {path}")
         r = self._handle_response(
             requests.get(
                 path,
                 verify=self.ssl_verify,
-                headers=self.header.general,
+                headers=self.header.request_header,
             )
         )
         return r
 
     def validate_password(self, password):
-        path = self.api_path('password')
+        path = self.api_path("password")
         logger.info(f"Validating password for {self.email_address} from {path}")
         r = self._handle_response(
             requests.post(
@@ -259,19 +264,19 @@ class Client(ApiRequestHandler):
         return r
 
     def get_password(self):
-        path = self.api_path('password')
+        path = self.api_path("password")
         logger.info(f"Getting generated password from {path}")
         r = self._handle_response(
             requests.get(
                 path,
                 verify=self.ssl_verify,
-                headers=self.header.general,
+                headers=self.header.request_header,
             )
         )
         return r
 
     def get_policy(self, recipients):
-        path = self.api_path('users') + self.email_address + "/transfer-policy"
+        path = self.api_path("users") + self.email_address + "/transfer-policy"
         logger.info(f"Getting policy for {self.email_address} and  {recipients} from {path}")
         r = self._handle_response(
             requests.post(
@@ -283,6 +288,109 @@ class Client(ApiRequestHandler):
         )
         return r
 
-    def download(self, transfer_id, password) -> Download:
+    def download_transfer(self, transfer_id, password) -> CryptshareDownload:
         logger.debug(f"Downloading transfer {transfer_id} from {self._server}")
-        return Download.Download(self.server, self.header, transfer_id, password, ssl_verify=self.ssl_verify)
+        return CryptshareDownload(self, transfer_id, password)
+
+    def send_transfer(
+        self,
+        origin,
+        send_server: str,
+        sender_email: str,
+        sender_name: str,
+        sender_phone: str,
+        transfer_password: str,
+        expiration_date: datetime,
+        files: str,
+        recipients: list[str] = None,
+        cc: list[str] = None,
+        bcc: list[str] = None,
+        subject: str = "",
+        message: str = "",
+    ):
+        if not recipients:
+            recipients = []
+        if not cc:
+            cc = []
+        if not bcc:
+            bcc = []
+
+        transformed_recipients = [{"mail": recipient} for recipient in recipients]
+        transformed_cc_recipients = [{"mail": recipient} for recipient in cc]
+        transformed_bcc_recipients = [{"mail": recipient} for recipient in bcc]
+        all_recipients = list(itertools.chain(recipients, cc, bcc))
+        # All recipients list needed for policy request
+
+        print(f"Sending Transfer from {sender_email} using {send_server}")
+        print(f" To Recipients: {recipients}")
+        print(f" CC Recipients: {cc}")
+        print(f" BCC Recipients: {bcc}")
+        print(f" Files: {files}")
+
+        #  Reads existing verifications from the 'store' file if any
+        self.read_client_store()
+
+        #  request client id from server if no client id exists
+        #  Both branches also react on the REST API not licensed
+        if self.exists_client_id() is False:
+            self.request_client_id()
+        else:
+            # Check CORS state for a specific origin.
+            self.cors(origin)
+
+        sender = CryptshareSender(sender_name, sender_phone, sender_email)
+        sender.setup_and_verify_sender(self)
+
+        # ToDo: show password rules to user, when asking for password
+        transfer_security_mode = SecurityMode(password=transfer_password, mode="MANUAL")
+        if transfer_password == "" or transfer_password is None:
+            transfer_password = self.get_password().get("password")
+            print(f"Generated Password to receive Files: {transfer_password}")
+            transfer_security_mode = SecurityMode(password=transfer_password, mode="GENERATED")
+        else:
+            passwort_validated_response = self.validate_password(transfer_password)
+            valid_password = passwort_validated_response.get("valid")
+            if not valid_password:
+                print("Passwort is not valid.")
+                password_rules = self.get_password_rules()
+                logger.debug(f"Passwort rules:\n{password_rules}")
+                return
+
+        policy_response = self.get_policy(all_recipients)
+        valid_policy = policy_response.get("allowed")
+        if not valid_policy:
+            print("Policy not valid.")
+            logger.debug(f"Policy response: {policy_response}")
+            return
+
+        #  Transfer definition
+        subject = subject if subject != "" else None
+        notification = NotificationMessage(message, subject)
+        settings = TransferSettings(
+            sender,
+            notification_message=notification,
+            send_download_notifications=True,
+            security_mode=transfer_security_mode,
+            expiration_date=expiration_date.astimezone().isoformat(),
+        )
+
+        #  Start of transfer on server side
+        transfer = self.start_transfer(
+            {
+                "bcc": transformed_bcc_recipients,
+                "cc": transformed_cc_recipients,
+                "to": transformed_recipients,
+            },
+            settings,
+        )
+        for file in files:
+            transfer.upload_file(file)
+
+        pre_transfer_info = transfer.get_transfer_settings()
+        logger.debug(f"Pre-Transfer info: \n{pre_transfer_info}")
+        transfer.send_transfer()
+        post_transfer_info = transfer.get_transfer_status()
+        logger.debug(f" Post-Transfer info: \n{post_transfer_info}")
+        self.write_client_store()
+        transfer_id = transfer.get_transfer_id()
+        print(f"Transfer {transfer_id} uploaded successfully.")
