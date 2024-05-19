@@ -3,7 +3,33 @@ import os
 import re
 from datetime import datetime, timedelta
 
+import questionary
+
+from cryptshare import CryptshareSender, CryptshareClient
+
 logger = logging.getLogger(__name__)
+
+
+class QuestionaryCryptshareSender(CryptshareSender):
+    def verify_sender_email_verification(self, cryptshare_client: CryptshareClient):
+        """
+        Perform an email verification of the sender. Requires User Input.
+        Overwritten from CryptshareSender to use questionary for user input.
+
+        :param cryptshare_client: The Cryptshare client instance.
+        :return: bool, True if the sender is verified, False otherwise
+        """
+        cryptshare_client.request_code()
+        verification_code = questionary.text(
+            f"Please enter the verification code sent to your email address ({self._email}):\n"
+        ).ask()
+        cryptshare_client.verify_code(verification_code.strip())
+        verification = cryptshare_client.get_verification()
+        if verification.get("verified") is not True:
+            print("Verification failed.")
+            return False
+        print(f"Sender {self._email} is verified until {verification['validUntil']}.")
+        return True
 
 
 def is_valid_email_or_blank(email):

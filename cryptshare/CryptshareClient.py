@@ -82,7 +82,7 @@ class CryptshareClient(ApiRequestHandler):
         if email in self._client_store:
             self._client_store.remove(email)
 
-    def request_code(self):
+    def request_code(self) -> None:
         path = self.api_path("users") + self.email_address + "/verification/code/email"
         logger.info(f"Requesting verification code for {self.email_address} from {path}")
         self._handle_response(
@@ -93,7 +93,7 @@ class CryptshareClient(ApiRequestHandler):
             )
         )
 
-    def verify_code(self, code: str):
+    def verify_code(self, code: str) -> bool:
         url = f"{self.api_path('users')}{self.email_address}/verification/token"
         logger.info(f"Verifying code {code} for {self.email_address} from {url} to obtain verification token")
         r = self._handle_response(
@@ -111,7 +111,7 @@ class CryptshareClient(ApiRequestHandler):
         self.header.verification_token = verification_token
         return True
 
-    def is_verified(self):
+    def is_verified(self) -> bool:
         path = f"{self.api_path('users')}{self.email_address}/verification"
         logger.info(f"Checking if {self.email_address} is verified from {path}")
 
@@ -122,9 +122,9 @@ class CryptshareClient(ApiRequestHandler):
                 headers=self.header.request_header,
             )
         )
-        return r.get("verified")
+        return r.get("verified", False)
 
-    def get_verification(self):
+    def get_verification(self) -> dict:
         path = f"{self.api_path('users')}{self.email_address}/verification"
         logger.info(f"Getting verification status for {self.email_address} from {path}")
 
@@ -137,7 +137,7 @@ class CryptshareClient(ApiRequestHandler):
         )
         return r
 
-    def cors(self, origin: str):
+    def cors(self, origin: str) -> None:
         path = f"{self.api_path('products')}api.rest/cors"
         logger.info(f"Checking CORS for origin {origin} and {path}")
         self.header.origin = origin
@@ -157,7 +157,7 @@ class CryptshareClient(ApiRequestHandler):
             return True
         return False
 
-    def start_transfer(self, recipients, settings: TransferSettings):
+    def start_transfer(self, recipients, settings: TransferSettings) -> Transfer:
         logger.debug(f"Starting transfer for {self.email_address} to {recipients} with settings {settings}")
         transfer = Transfer(
             self.header,
@@ -238,7 +238,7 @@ class CryptshareClient(ApiRequestHandler):
         )
         return r
 
-    def get_transfers(self):
+    def get_transfers(self) -> dict:
         path = self.api_path("users") + self.email_address + "/transfers"
         logger.info(f"Getting transfers for {self.email_address} from {path}")
         r = self._handle_response(
@@ -295,7 +295,6 @@ class CryptshareClient(ApiRequestHandler):
     def send_transfer(
         self,
         origin,
-        send_server: str,
         sender_email: str,
         sender_name: str,
         sender_phone: str,
@@ -307,7 +306,10 @@ class CryptshareClient(ApiRequestHandler):
         bcc: list[str] = None,
         subject: str = "",
         message: str = "",
-    ):
+    ) -> None:
+        """ Send a transfer using the Cryptshare server.
+        """
+
         if not recipients:
             recipients = []
         if not cc:
@@ -320,12 +322,6 @@ class CryptshareClient(ApiRequestHandler):
         transformed_bcc_recipients = [{"mail": recipient} for recipient in bcc]
         all_recipients = list(itertools.chain(recipients, cc, bcc))
         # All recipients list needed for policy request
-
-        print(f"Sending Transfer from {sender_email} using {send_server}")
-        print(f" To Recipients: {recipients}")
-        print(f" CC Recipients: {cc}")
-        print(f" BCC Recipients: {bcc}")
-        print(f" Files: {files}")
 
         #  Reads existing verifications from the 'store' file if any
         self.read_client_store()
@@ -357,7 +353,7 @@ class CryptshareClient(ApiRequestHandler):
                 return
 
         policy_response = self.get_policy(all_recipients)
-        valid_policy = policy_response.get("allowed")
+        valid_policy = policy_response.get("allowed", False)
         if not valid_policy:
             print("Policy not valid.")
             logger.debug(f"Policy response: {policy_response}")

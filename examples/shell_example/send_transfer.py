@@ -1,13 +1,11 @@
 import logging
 import itertools
 
-import questionary
-
 from helpers import (
     clean_expiration,
     clean_string_list,
     send_password_with_twilio,
-    twilio_sms_is_configured,
+    twilio_sms_is_configured, QuestionaryCryptshareSender,
 )
 
 from cryptshare import CryptshareClient, CryptshareSender
@@ -16,28 +14,6 @@ from cryptshare.SecurityMode import SecurityMode
 from cryptshare.TransferSettings import TransferSettings
 
 logger = logging.getLogger(__name__)
-
-
-class QuestionaryCryptshareSender(CryptshareSender):
-    def verify_sender_email_verification(self, cryptshare_client: CryptshareClient):
-        """
-        Perform an email verification of the sender. Requires User Input.
-        Overwritten from CryptshareSender to use questionary for user input.
-
-        :param cryptshare_client: The Cryptshare client instance.
-        :return: bool, True if the sender is verified, False otherwise
-        """
-        cryptshare_client.request_code()
-        verification_code = questionary.text(
-            f"Please enter the verification code sent to your email address ({self._email}):\n"
-        ).ask()
-        cryptshare_client.verify_code(verification_code.strip())
-        verification = cryptshare_client.get_verification()
-        if verification.get("verified") is not True:
-            print("Verification failed.")
-            return False
-        print(f"Sender {self._email} is verified until {verification['validUntil']}.")
-        return True
 
 
 def send_transfer(
@@ -89,7 +65,7 @@ def send_transfer(
         # Check CORS state for a specific origin.
         cryptshare_client.cors(origin)
 
-    sender = CryptshareSender(sender_name, sender_phone, sender_email)
+    sender = QuestionaryCryptshareSender(sender_name, sender_phone, sender_email)
     sender.setup_and_verify_sender(cryptshare_client)
 
     send_password_sms = False

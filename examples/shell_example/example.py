@@ -266,7 +266,6 @@ def main():
         client = CryptshareClient(default_server_url)
         client.send_transfer(
             origin,
-            default_server_url,
             default_sender_email,
             default_sender_name,
             default_sender_phone,

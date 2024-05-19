@@ -10,10 +10,10 @@ currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentfram
 parentdir = os.path.dirname(os.path.dirname(currentdir))
 sys.path.insert(0, parentdir)
 
-import cryptshare.Client as CryptshareClient
+import cryptshare.CryptshareClient as CryptshareClient
 import cryptshare.NotificationMessage as NotificationMessage
 import cryptshare.SecurityMode as SecurityMode
-import cryptshare.Sender as Sender
+import cryptshare.CryptshareSender as Sender
 import cryptshare.TransferSettings as Settings
 
 # Please change these parameters accordingly to your setup

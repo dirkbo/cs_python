@@ -1,10 +1,9 @@
 import logging
 
-from cryptshare.CryptshareSender import CryptshareSender
-
 from cryptshare import CryptshareClient
 from cryptshare.Transfer import Transfer
 from cryptshare.TransferSettings import TransferSettings
+from examples.shell_example.helpers import QuestionaryCryptshareSender
 
 logger = logging.getLogger(__name__)
 
@@ -47,7 +46,7 @@ def print_transfer_status_list(transfers, send_server, sender_email, cryptshare_
     for list_transfer in transfers:
         tracking_id = list_transfer["trackingId"]
         print(f"Transfer status for Tracking ID {tracking_id}:")
-        transfer = Transfer(cryptshare_client.request_header, [], [], [], TransferSettings(sender_email))
+        transfer = Transfer(cryptshare_client.header, [], [], [], TransferSettings(sender_email))
         status_location = f"{send_server}/api/users/{sender_email}/transfers/{tracking_id}"
         transfer.set_location(status_location)
         transfer = transfer.get_transfer_status()
@@ -73,8 +72,8 @@ def transfer_status(
     if cryptshare_client.exists_client_id() is False:
         cryptshare_client.request_client_id()
 
-    sender = CryptshareSender("", "", sender_email)
-    sender.verify_sender_email_verification(cryptshare_client)
+    sender = QuestionaryCryptshareSender("", "", sender_email)
+    sender.setup_and_verify_sender(cryptshare_client)
 
     if transfer_transfer_id is None:
         all_transfers = cryptshare_client.get_transfers()
