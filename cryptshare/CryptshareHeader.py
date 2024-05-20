@@ -9,9 +9,6 @@ class CryptshareHeader:
         "X-CS-MinimumMinorApiVersion": "9",
         "X-CS-ProductKey": "api.rest",
     }
-    _cors = {
-        "Origin": "",
-    }
 
     @property
     def client_id(self) -> str:
@@ -30,20 +27,6 @@ class CryptshareHeader:
     def verification_token(self, token: str) -> None:
         logger.debug(f"Setting verification token to {token}")
         self._general.update({"X-CS-VerificationToken": token})
-
-    @property
-    def origin(self) -> str:
-        return self._cors.get("Origin", None)
-
-    @origin.setter
-    def origin(self, origin):
-        logger.debug(f"Setting origin to {origin}")
-        self._cors.update(({"Origin": origin}))
-
-    @property
-    def request_header_cors(self):
-        """Headers needed to access endpoint product key / Cors"""
-        return self._cors | self._general
 
     @property
     def request_header(self):

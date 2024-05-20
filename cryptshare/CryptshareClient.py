@@ -164,13 +164,13 @@ class CryptshareClient(ApiRequestHandler):
     def cors(self, origin: str) -> None:
         path = f"{self.api_path('products')}api.rest/cors"
         logger.info(f"Checking CORS for origin {origin} and {path}")
-        self.header.origin = origin
+        origin_header = {"Origin": origin}
 
         r = self._handle_response(
             requests.get(
                 path,
                 verify=self.ssl_verify,
-                headers=self.header.request_header_cors,
+                headers=self.header.extra_header(origin_header)
             )
         )
         logger.info(f"CORS is active for origin {origin}: {r.get('active')}")
