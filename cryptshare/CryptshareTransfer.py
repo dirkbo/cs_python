@@ -50,7 +50,7 @@ class TransferFile(ApiRequestHandler):
 
     @property
     def transfer_session_url(self):
-        return f"{self._cryptshare_client.api_path("users")}{self._cryptshare_client.sender_email}/transfer-sessions/{self._tracking_id}"
+        return f"{self._cryptshare_client.api_path('users')}{self._cryptshare_client.sender_email}/transfer-sessions/{self._tracking_id}"
 
     def set_location(self, location):
         logger.debug(f"Setting location to {location}")
