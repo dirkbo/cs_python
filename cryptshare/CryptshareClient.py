@@ -167,11 +167,7 @@ class CryptshareClient(ApiRequestHandler):
         origin_header = {"Origin": origin}
 
         r = self._handle_response(
-            requests.get(
-                path,
-                verify=self.ssl_verify,
-                headers=self.header.extra_header(origin_header)
-            )
+            requests.get(path, verify=self.ssl_verify, headers=self.header.extra_header(origin_header))
         )
         logger.info(f"CORS is active for origin {origin}: {r.get('active')}")
 
@@ -188,9 +184,10 @@ class CryptshareClient(ApiRequestHandler):
             to=recipients.get("to"),
             cc=recipients.get("cc"),
             bcc=recipients.get("bcc"),
+            cryptshare_client=self,
         )
-        transfer.start_transfer_session(self, settings)
-        transfer.edit_transfer_settings(self, settings)
+        transfer.start_transfer_session(settings)
+        transfer.edit_transfer_settings(settings)
         return transfer
 
     def request_client_id(self):
@@ -416,12 +413,16 @@ class CryptshareClient(ApiRequestHandler):
 
         #  Start of transfer on server side
         transfer = CryptshareTransfer(
-            settings, to=transformed_recipients, cc=transformed_cc_recipients, bcc=transformed_bcc_recipients
+            settings,
+            to=transformed_recipients,
+            cc=transformed_cc_recipients,
+            bcc=transformed_bcc_recipients,
+            cryptshare_client=self,
         )
         transfer.set_generated_password(transfer_password)
-        transfer.start_transfer_session(self, settings)
+        transfer.start_transfer_session(settings)
         for file in files:
-            transfer.upload_file(self, file)
+            transfer.upload_file(file)
 
         pre_transfer_info = transfer.get_transfer_settings(self)
         logger.debug(f"Pre-Transfer info: \n{pre_transfer_info}")

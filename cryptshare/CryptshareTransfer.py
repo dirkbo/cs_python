@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 
 class CryptshareTransfer(ApiRequestHandler):
-    location = ""
+    _cryptshare_client: CryptshareClient = None
     files = []
     tracking_id: str = ""
     _settings: TransferSettings
@@ -27,6 +27,7 @@ class CryptshareTransfer(ApiRequestHandler):
         cc: list[[dict[str, str]]] = None,
         bcc: list[[dict[str, str]]] = None,
         tracking_id: str = None,
+        cryptshare_client: CryptshareClient = None,
     ):
         logger.debug("Initialising Cryptshare Transfer object")
         self.cc = cc if cc else []
@@ -36,16 +37,21 @@ class CryptshareTransfer(ApiRequestHandler):
         if not CryptshareValidators.is_valid_tracking_id_or_blank(tracking_id):
             raise ValueError("Invalid tracking ID")
         self.tracking_id = tracking_id if tracking_id else ""
+        self._cryptshare_client = cryptshare_client if cryptshare_client else None
         self._settings = settings
         self.send = False
 
-    def get_transfer_session_url(self, cryptshare_client: CryptshareClient):
-        return (
-            f"{cryptshare_client.api_path('users')}{self._settings.sender.email}/transfer-sessions/{self.tracking_id}"
-        )
+    def get_transfer_session_url(self, cryptshare_client: CryptshareClient = None):
+        self._cryptshare_client = cryptshare_client if cryptshare_client else self._cryptshare_client
+        # Update transfer's cryptshare client, if provided
 
-    def get_transfer_status_url(self, cryptshare_client: CryptshareClient):
-        return f"{cryptshare_client.api_path('users')}{self._settings.sender.email}/transfers/{self.tracking_id}"
+        return f"{self._cryptshare_client.api_path('users')}{self._settings.sender.email}/transfer-sessions/{self.tracking_id}"
+
+    def get_transfer_status_url(self, cryptshare_client: CryptshareClient = None):
+        self._cryptshare_client = cryptshare_client if cryptshare_client else self._cryptshare_client
+        # Update transfer's cryptshare client, if provided
+
+        return f"{self._cryptshare_client.api_path('users')}{self._settings.sender.email}/transfers/{self.tracking_id}"
 
     def set_generated_password(self, password: str):
         """
@@ -65,18 +71,21 @@ class CryptshareTransfer(ApiRequestHandler):
             return self._generated_password
         return None
 
-    def start_transfer_session(self, cryptshare_client: CryptshareClient, settings: TransferSettings = None):
+    def start_transfer_session(self, settings: TransferSettings = None, cryptshare_client: CryptshareClient = None):
         """Starts a new transfer session"""
+        self._cryptshare_client = cryptshare_client if cryptshare_client else self._cryptshare_client
+        # Update transfer's cryptshare client, if provided
         self._settings = settings if settings else self._settings
+        # Update transfer's settings, if provided
 
         logger.debug("Starting transfer session")
-        path = f"{cryptshare_client.api_path('users')}{self._settings.sender.email}/transfer-sessions"
+        path = f"{self._cryptshare_client.api_path('users')}{self._settings.sender.email}/transfer-sessions"
         logger.info(f"Starting transfer for {self._settings.sender.email} from {path}")
         r = self._handle_response(
             requests.post(
                 path,
-                verify=cryptshare_client.ssl_verify,
-                headers=cryptshare_client.header.extra_header({"Content-Type": "application/json"}),
+                verify=self._cryptshare_client.ssl_verify,
+                headers=self._cryptshare_client.header.extra_header({"Content-Type": "application/json"}),
                 json=self.get_sender_and_recipients(),
             )
         )
@@ -115,32 +124,38 @@ class CryptshareTransfer(ApiRequestHandler):
         logger.debug(f"Setting bcc recipients to {recipients}")
         self.bcc = recipients
 
-    def upload_file(self, cryptshare_client: CryptshareClient, path: str):
+    def upload_file(self, path: str, cryptshare_client: CryptshareClient = None):
+        self._cryptshare_client = cryptshare_client if cryptshare_client else self._cryptshare_client
+        # Update transfer's cryptshare client, if provided
+
         if not self._session_is_open:
             logger.error("Cryptshare Transfer Session is not open, can't upload file")
             return None
-        url = f"{self.get_transfer_session_url(cryptshare_client)}/files"
+        url = f"{self.get_transfer_session_url()}/files"
         logger.debug(f"Uploading file {path} to {url}")
         file = TransferFile(path)
         r = self._handle_response(
             requests.post(
                 url,
-                verify=cryptshare_client.ssl_verify,
-                headers=cryptshare_client.header.request_header,
+                verify=self._cryptshare_client.ssl_verify,
+                headers=self._cryptshare_client.header.request_header,
                 json=file.data(),
             )
         )
         file.set_location(r)
-        file.upload(cryptshare_client)
+        file.upload(self._cryptshare_client)
         self.files.append(file)
         return file
 
-    def delete_file(self, cryptshare_client, file: TransferFile):
+    def delete_file(self, file: TransferFile, cryptshare_client: CryptshareClient = None):
+        self._cryptshare_client = cryptshare_client if cryptshare_client else self._cryptshare_client
+        # Update transfer's cryptshare client, if provided
+
         if not self._session_is_open:
             logger.error("Cryptshare Transfer Session is not open, can't upload file")
             return None
         logger.debug(f"Deleting file {file.name}")
-        file.delete_upload(cryptshare_client)
+        file.delete_upload(self._cryptshare_client)
         self.files.remove(file)
 
     def get_recipients(self) -> dict:
@@ -155,46 +170,64 @@ class CryptshareTransfer(ApiRequestHandler):
         logger.debug("Getting transfer sender and recipient data")
         return {"sender": self.get_sender(), "recipients": self.get_recipients()}
 
-    def get_transfer_settings(self, cryptshare_client: CryptshareClient):
+    def get_transfer_settings(self, cryptshare_client: CryptshareClient = None):
+        self._cryptshare_client = cryptshare_client if cryptshare_client else self._cryptshare_client
+        # Update transfer's cryptshare client, if provided
+
         if not self._session_is_open:
             logger.error("Cryptshare Transfer Session is not open, can't upload file")
             return None
-        path = self.get_transfer_session_url(cryptshare_client)
+        path = self.get_transfer_session_url()
         logger.info(f"Getting transfer settings from GET {path}")
         r = self._handle_response(
-            requests.get(path, verify=cryptshare_client.ssl_verify, headers=cryptshare_client.header.request_header)
+            requests.get(
+                path, verify=self._cryptshare_client.ssl_verify, headers=self._cryptshare_client.header.request_header
+            )
         )
         return r
 
-    def edit_transfer_settings(self, cryptshare_client: CryptshareClient, transfer_settings):
+    def edit_transfer_settings(self, transfer_settings, cryptshare_client: CryptshareClient = None):
+        self._cryptshare_client = cryptshare_client if cryptshare_client else self._cryptshare_client
+        # Update transfer's cryptshare client, if provided
+
         if not self._session_is_open:
             logger.error("Cryptshare Transfer Session is not open, can't upload file")
             return None
-        path = self.get_transfer_session_url(cryptshare_client)
+        path = self.get_transfer_session_url()
         logger.debug(f"Editing transfer settings PATCH {path}")
         r = self._handle_response(
             requests.patch(
                 path,
                 json=transfer_settings.data(),
-                verify=cryptshare_client.ssl_verify,
-                headers=cryptshare_client.header.request_header,
+                verify=self._cryptshare_client.ssl_verify,
+                headers=self._cryptshare_client.header.request_header,
             )
         )
         return r
 
-    def send_transfer(self, cryptshare_client: CryptshareClient):
-        path = self.get_transfer_session_url(cryptshare_client)
+    def send_transfer(self, cryptshare_client: CryptshareClient = None):
+        self._cryptshare_client = cryptshare_client if cryptshare_client else self._cryptshare_client
+        # Update transfer's cryptshare client, if provided
+
+        path = self.get_transfer_session_url()
         logger.debug(f"Sending transfer POST {path}")
         r = self._handle_response(
-            requests.post(path, verify=cryptshare_client.ssl_verify, headers=cryptshare_client.header.request_header)
+            requests.post(
+                path, verify=self._cryptshare_client.ssl_verify, headers=self._cryptshare_client.header.request_header
+            )
         )
         self._session_is_open = False
         return r
 
-    def get_transfer_status(self, cryptshare_client: CryptshareClient):
-        path = self.get_transfer_status_url(cryptshare_client)
+    def get_transfer_status(self, cryptshare_client: CryptshareClient = None):
+        self._cryptshare_client = cryptshare_client if cryptshare_client else self._cryptshare_client
+        # Update transfer's cryptshare client, if provided
+
+        path = self.get_transfer_status_url()
         logger.debug(f"Getting transfer status GET {path}")
         r = self._handle_response(
-            requests.get(path, verify=cryptshare_client.ssl_verify, headers=cryptshare_client.header.request_header)
+            requests.get(
+                path, verify=self._cryptshare_client.ssl_verify, headers=self._cryptshare_client.header.request_header
+            )
         )
         return r

@@ -126,17 +126,21 @@ def send_transfer(
 
     #  Start of transfer on server side
     transfer = CryptshareTransfer(
-        settings, to=transformed_recipients, cc=transformed_cc_recipients, bcc=transformed_bcc_recipients
+        settings,
+        to=transformed_recipients,
+        cc=transformed_cc_recipients,
+        bcc=transformed_bcc_recipients,
+        cryptshare_client=cryptshare_client,
     )
 
-    transfer.start_transfer_session(cryptshare_client, settings)
+    transfer.start_transfer_session(settings)
     for file in files:
-        transfer.upload_file(cryptshare_client, file)
+        transfer.upload_file(file)
 
-    pre_transfer_info = transfer.get_transfer_settings(cryptshare_client)
+    pre_transfer_info = transfer.get_transfer_settings()
     logger.debug(f"Pre-Transfer info: \n{pre_transfer_info}")
-    transfer.send_transfer(cryptshare_client)
-    post_transfer_info = transfer.get_transfer_status(cryptshare_client)
+    transfer.send_transfer()
+    post_transfer_info = transfer.get_transfer_status()
     logger.debug(f" Post-Transfer info: \n{post_transfer_info}")
 
     print(f"Transfer {transfer.tracking_id} uploaded successfully.")
