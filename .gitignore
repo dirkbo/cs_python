@@ -5,8 +5,10 @@ store
 venv2
 .idea
 *.pyc
+.env
 *.sqlite3
 vmanage.py
 credentials.py
 client_store.json
+client_store_*.json
 transfers

@@ -2,7 +2,7 @@
     "version": 1,
     "disable_existing_loggers": false,
     "formatters": {
-        "standard": {"format": "%(asctime)s [%(levelname)s] %(name)s: %(message)s"}
+        "standard": {"format": "[%(levelname)s] %(name)s %(funcName)s: %(message)s"}
     },
     "handlers": {
         "default": {
@@ -15,6 +15,7 @@
     "loggers": {
         "": {"handlers": ["default"], "level": "WARNING", "propagate": false},
         "cryptshare": {"handlers": ["default"], "level": "WARNING", "propagate": false},
+        "cryptshare.CryptshareValidators": {"handlers": ["default"], "level": "WARNING", "propagate": false},
         "__main__": {"handlers": ["default"], "level": "WARNING", "propagate": false}
     }
 }

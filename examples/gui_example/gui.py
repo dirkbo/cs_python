@@ -10,11 +10,13 @@ currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentfram
 parentdir = os.path.dirname(os.path.dirname(currentdir))
 sys.path.insert(0, parentdir)
 
-import cryptshare.Client as CryptshareClient
+import cryptshare.CryptshareClient as CryptshareClient
 import cryptshare.NotificationMessage as NotificationMessage
-import cryptshare.SecurityMode as SecurityMode
-import cryptshare.Sender as Sender
 import cryptshare.TransferSettings as Settings
+from cryptshare.CryptshareTransferSecurityMode import (
+    CryptshareTransferSecurityMode,
+    SecurityMode,
+)
 
 # Please change these parameters accordingly to your setup
 cryptshare_server_url = os.getenv("CRYPTSHARE_SERVER_URL", "https://beta.cryptshare.com")
@@ -239,7 +241,7 @@ def display_transfer_information(transfer_settings):
 
 def main():
     #  Set server URL
-    cryptshare_client = CryptshareClient.Client(cryptshare_server_url, ssl_verify=False)
+    cryptshare_client = CryptshareClient.CryptshareClient(cryptshare_server_url, ssl_verify=False)
 
     #  Reads existing verifications from the 'store' file if any
     cryptshare_client.read_client_store()
@@ -262,7 +264,7 @@ def main():
         expiration_date,
     ) = ui(cryptshare_client)
     #  determine sender
-    cryptshare_client.set_email(sender_address)
+    cryptshare_client.set_sender(sender_address, "REST by Python", "+4976138913100")
     # request verification for sender if not verified already
     if cryptshare_client.is_verified() is False:
         cryptshare_client.request_code()
@@ -274,13 +276,13 @@ def main():
     # passwort_validated_response = cryptshare_client.validate_password("happyday123asd")
     # policy_response = cryptshare_client.get_policy(["python@domain.com"])
     #  Transfer definition
-    sender = Sender.Sender("REST by Python", +4976138913100)
+    sender = cryptshare_client.sender
     settings = Settings.TransferSettings(
         sender,
         expiration_date,
         NotificationMessage.NotificationMessage("test", "Test the REST"),
         send_download_notifications=True,
-        security_mode=SecurityMode.SecurityMode(password=transfer_password),
+        security_mode=CryptshareTransferSecurityMode(password=transfer_password),
     )
     # settings = Settings.TransferSettings(sender, expirationdate,
     #                                     NotificationMessage.NotificationMessage("test", "Test the REST"), send_download_notifications=True,
@@ -296,7 +298,7 @@ def main():
         settings,
     )
     for file in files:
-        transfer.upload_file(file)
+        transfer.upload_file(cryptshare_client, file)
     pre_transfer_info = transfer.get_transfer_settings()
     if display_transfer_information(transfer.get_transfer_settings()):
         transfer.send_transfer()
@@ -304,7 +306,7 @@ def main():
     cryptshare_client.write_client_store()
 
     #  Create a Download object to perform downloads on.
-    cryptshare_client.download("pq7KbAIvL9", "Hb$uciWr")
+    cryptshare_client.download_transfer("pq7KbAIvL9", "Hb$uciWr")
 
     print(pre_transfer_info)
     print(post_transfer_info)

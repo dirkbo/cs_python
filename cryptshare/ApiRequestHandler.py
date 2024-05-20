@@ -6,7 +6,7 @@ from requests import HTTPError
 logger = logging.getLogger(__name__)
 
 
-class ApiRequestHandler(object):
+class ApiRequestHandler:
     @staticmethod
     def _handle_response(resp):
         logger.debug("Handling API response")

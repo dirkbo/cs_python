@@ -23,9 +23,10 @@ Install also development requirements
 # Configuration
 
 ## Environment variables 
+The following environment variables (also .env file) can be used to configure the client.
 
 ### CRYPTSHARE_SERVER
-Default value is "https://beta.cryptshare.com". The default Cryptshare Server that is beeing used.
+Default value is "http://localhost". The default Cryptshare Server that is beeing used.
 
 ### CRYPTSHARE_SENDER_EMAIL
 Default value is None. When configured, the email will be used as default sender email for sending transfers.
@@ -40,7 +41,7 @@ Default Value is "0". When configured, the phone number will be used as default 
 Default Value is "https://localhost". When configured, the origin will be used as default CORS origin.
 
 ## Extra Environment variables
-Only required for sending Password SMS using ttwilion with the `--sms_recipient` option of the shell example.
+Only required for sending Password SMS using twilio with the `--sms_recipient` option of the shell example.
 
 ### TWILIO_ACCOUNT_SID 
 Optional, Passwords can't be sent by sms if not configured.

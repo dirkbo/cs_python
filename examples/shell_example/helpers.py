@@ -2,29 +2,34 @@ import logging
 import os
 from datetime import datetime, timedelta
 
+import questionary
+
+from cryptshare import CryptshareClient, CryptshareSender
+from cryptshare.CryptshareValidators import CryptshareValidators
+
 logger = logging.getLogger(__name__)
 
 
-def verify_sender(cryptshare_client, sender_email):
-    """
-    This function is used to verify the sender email address.
+class QuestionaryCryptshareSender(CryptshareSender):
+    def verify_sender_email_verification(self, cryptshare_client: CryptshareClient):
+        """
+        Perform an email verification of the sender. Requires User Input.
+        Overwritten from CryptshareSender to use questionary for user input.
 
-    :param cryptshare_client: The Cryptshare client instance.
-    :param sender_email: The sender email address.
-    :return: None
-
-    The function checks if the sender email address is already verified. If not, it requests a verification code and verifies the sender email address.
-    """
-    verification = cryptshare_client.get_verification()
-    if verification["verified"] is True:
-        print(f"Sender {sender_email} is verified until {verification['validUntil']}.")
-    else:
+        :param cryptshare_client: The Cryptshare client instance.
+        :return: bool, True if the sender is verified, False otherwise
+        """
         cryptshare_client.request_code()
-        verification_code = input(f"Please enter the verification code sent to your email address ({sender_email}):\n")
+        verification_code = questionary.text(
+            f"Please enter the verification code sent to your email address ({self._email}):\n"
+        ).ask()
         cryptshare_client.verify_code(verification_code.strip())
-        if cryptshare_client.is_verified() is not True:
+        verification = cryptshare_client.get_verification()
+        if verification.get("verified") is not True:
             print("Verification failed.")
-    return verification
+            return False
+        print(f"Sender {self._email} is verified until {verification['validUntil']}.")
+        return True
 
 
 def clean_expiration(date_string_value, default_days=2):
@@ -134,7 +139,27 @@ def clean_expiration(date_string_value, default_days=2):
     if date_string_value.endswith("m"):
         months = int(date_string_value[:-1])
         return now + timedelta(weeks=months * 4)
-    return date_value
+    raise ValueError(f"Invalid expiration date: {date_string_value}")
+
+
+def is_valid_expiration(date_string_value):
+    if date_string_value is None or date_string_value == "":
+        return False
+    try:
+        clean_expiration(date_string_value)
+    except ValueError:
+        return False
+    return True
+
+
+def is_valid_multiple_emails(email_list: str):
+    if email_list is None or email_list == "":
+        return True
+    emails = email_list.split(" ")
+    for email in emails:
+        if not CryptshareValidators.is_valid_email(email):
+            return False
+    return True
 
 
 def clean_string_list(string_list):
@@ -181,6 +206,7 @@ def send_password_with_twilio(tracking_id, password, recipient_sms, recipient_em
     # To set up environmental variables, see http://twil.io/secure
 
     if not twilio_sms_is_configured():
+        logger.info(f"Twilio SMS is not configured. SMS not sent to {recipient_sms}.")
         return
 
     account_sid = os.getenv("TWILIO_ACCOUNT_SID", None)
@@ -188,7 +214,7 @@ def send_password_with_twilio(tracking_id, password, recipient_sms, recipient_em
     sender_phone = os.getenv("TWILIO_SENDER_PHONE", None)
     # Twilio trail accounts can only send SMS from and to verified numbers
 
-    message = f"To access your Cryptshare Transfer {tracking_id} the password is {password}"
+    message = f'To access your Cryptshare Transfer "{tracking_id}" the password is "{password}"'
     if recipient_email is not None:
         message = (
             f"To access the Cryptshare transfer {tracking_id} sent to {recipient_email}, the password is {password}"

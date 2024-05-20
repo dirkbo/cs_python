@@ -1,21 +1,72 @@
-import logging
+import hashlib
 import itertools
+import logging
+import os
 
+import requests
 from helpers import (
+    QuestionaryCryptshareSender,
     clean_expiration,
     clean_string_list,
     send_password_with_twilio,
     twilio_sms_is_configured,
 )
+from tqdm import tqdm
+from tqdm.utils import CallbackIOWrapper
 
-from cryptshare.Client import Client as CryptshareClient
+from cryptshare import CryptshareClient
+from cryptshare.CryptshareTransfer import CryptshareTransfer, TransferFile
+from cryptshare.CryptshareTransferSecurityMode import (
+    CryptshareTransferSecurityMode,
+    SecurityMode,
+)
 from cryptshare.NotificationMessage import NotificationMessage
-from cryptshare.SecurityMode import SecurityMode
-from cryptshare.Sender import Sender as CryptshareSender
 from cryptshare.TransferSettings import TransferSettings
-from examples.shell_example.helpers import verify_sender
 
 logger = logging.getLogger(__name__)
+
+
+class TqdmFile(TransferFile):
+    def calculate_checksum(self):
+        logger.debug("Calculating checksum")  # Calculate file hashsum
+        with open(self.path, "rb") as data:
+            file_content = data.read()
+            self.checksum = hashlib.sha256(file_content).hexdigest()
+            print(f"Checksum for {self.name}: {self.checksum}")
+
+    def upload_file_content(self):
+        upload_url = f"{self.transfer_session_url}/files/{self._file_id}/content"
+        logger.info(f"Uploading file {self.name} content to {upload_url}")
+
+        with open(self.path, "rb") as f:
+            with tqdm(total=self.size, unit="B", unit_scale=True, unit_divisor=1024) as t:
+                wrapped_file = CallbackIOWrapper(t.update, f, "read")
+                requests.put(
+                    upload_url,
+                    data=wrapped_file,
+                    verify=self._cryptshare_client.ssl_verify,
+                    headers=self._cryptshare_client.header.request_header,
+                )
+        return True
+
+
+class TqdmTransfer(CryptshareTransfer):
+    def upload_file(self, path: str, cryptshare_client: CryptshareClient = None):
+        self._cryptshare_client = cryptshare_client if cryptshare_client else self._cryptshare_client
+        # Update transfer's cryptshare client, if provided
+
+        if not self._session_is_open:
+            logger.error("Cryptshare Transfer Session is not open, can't upload file")
+            return None
+
+        url = f"{self.get_transfer_session_url()}/files"
+        logger.debug(f"Uploading file {path} to {url}")
+
+        file = TqdmFile(path, self.tracking_id, self._cryptshare_client)
+        file.announce_upload()
+        file.upload_file_content()
+        self.files.append(file)
+        return file
 
 
 def send_transfer(
@@ -42,7 +93,6 @@ def send_transfer(
     recipients = clean_string_list(recipients)
     cc = clean_string_list(cc)
     bcc = clean_string_list(bcc)
-    expiration_date = clean_expiration(expiration_date)
 
     transformed_recipients = [{"mail": recipient} for recipient in recipients]
     transformed_cc_recipients = [{"mail": recipient} for recipient in cc]
@@ -58,7 +108,6 @@ def send_transfer(
 
     #  Reads existing verifications from the 'store' file if any
     cryptshare_client.read_client_store()
-    cryptshare_client.set_email(sender_email)
 
     #  request client id from server if no client id exists
     #  Both branches also react on the REST API not licensed
@@ -66,11 +115,10 @@ def send_transfer(
         cryptshare_client.request_client_id()
     else:
         # Check CORS state for a specific origin.
-        # cryptshare_client.cors(origin)
-        # ToDo: After cors check, client verification from store is not working anymore
-        pass
+        cryptshare_client.cors(origin)
 
-    verify_sender(cryptshare_client, sender_email)
+    sender = QuestionaryCryptshareSender(sender_name, sender_phone, sender_email)
+    sender.setup_and_verify_sender(cryptshare_client)
 
     send_password_sms = False
     if twilio_sms_is_configured() and recipient_sms_phones is not None:
@@ -83,7 +131,7 @@ def send_transfer(
             show_generated_pasword = True
 
     # ToDo: show password rules to user, when asking for password
-    transfer_security_mode = SecurityMode(password=transfer_password, mode="MANUAL")
+    transfer_security_mode = CryptshareTransferSecurityMode(password=transfer_password, mode=SecurityMode.MANUAL)
     if transfer_password == "" or transfer_password is None:
         transfer_password = cryptshare_client.get_password().get("password")
         if not show_generated_pasword:
@@ -94,7 +142,7 @@ def send_transfer(
                 print(
                     "Number of phone numbers does not match number of email addresses. SMS might not be sent to all recipients."
                 )
-        transfer_security_mode = SecurityMode(password=transfer_password, mode="GENERATED")
+        transfer_security_mode = CryptshareTransferSecurityMode(password=transfer_password)
     else:
         passwort_validated_response = cryptshare_client.validate_password(transfer_password)
         valid_password = passwort_validated_response.get("valid")
@@ -114,7 +162,6 @@ def send_transfer(
         return
 
     #  Transfer definition
-    sender = CryptshareSender(sender_name, sender_phone)
     subject = subject if subject != "" else None
     notification = NotificationMessage(message, subject)
     settings = TransferSettings(
@@ -126,14 +173,16 @@ def send_transfer(
     )
 
     #  Start of transfer on server side
-    transfer = cryptshare_client.start_transfer(
-        {
-            "bcc": transformed_bcc_recipients,
-            "cc": transformed_cc_recipients,
-            "to": transformed_recipients,
-        },
+    transfer = TqdmTransfer(
         settings,
+        to=transformed_recipients,
+        cc=transformed_cc_recipients,
+        bcc=transformed_bcc_recipients,
+        cryptshare_client=cryptshare_client,
     )
+
+    transfer.start_transfer_session(settings)
+    print("Uploading files to transfer...")
     for file in files:
         transfer.upload_file(file)
 
@@ -142,9 +191,8 @@ def send_transfer(
     transfer.send_transfer()
     post_transfer_info = transfer.get_transfer_status()
     logger.debug(f" Post-Transfer info: \n{post_transfer_info}")
-    cryptshare_client.write_client_store()
-    transfer_id = transfer.get_transfer_id()
-    print(f"Transfer {transfer_id} uploaded successfully.")
-    if twilio_sms_is_configured() and recipient_sms_phones is not None:
+
+    print(f"Transfer {transfer.tracking_id} uploaded successfully.")
+    if recipient_sms_phones:
         for recipient_sms in recipient_sms_phones:
-            send_password_with_twilio(transfer_id, transfer_password, recipient_sms)
+            send_password_with_twilio(transfer.tracking_id, transfer_password, recipient_sms)
