@@ -15,6 +15,7 @@
     "loggers": {
         "": {"handlers": ["default"], "level": "WARNING", "propagate": false},
         "cryptshare": {"handlers": ["default"], "level": "WARNING", "propagate": false},
+        "cryptshare.CryptshareValidators": {"handlers": ["default"], "level": "WARNING", "propagate": false},
         "__main__": {"handlers": ["default"], "level": "WARNING", "propagate": false}
     }
 }

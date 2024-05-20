@@ -7,14 +7,18 @@ from datetime import datetime
 
 import requests
 
-from cryptshare.CryptshareDownload import CryptshareDownload
-from cryptshare.CryptshareSender import CryptshareSender
-from cryptshare.CryptshareHeader import CryptshareHeader
-from cryptshare.Transfer import Transfer
-from cryptshare.TransferSettings import TransferSettings
 from cryptshare.ApiRequestHandler import ApiRequestHandler
+from cryptshare.CryptshareDownload import CryptshareDownload
+from cryptshare.CryptshareHeader import CryptshareHeader
+from cryptshare.CryptshareSender import CryptshareSender
+from cryptshare.CryptshareTransfer import CryptshareTransfer
+from cryptshare.CryptshareTransferSecurityMode import (
+    CryptshareTransferSecurityMode,
+    SecurityMode,
+)
+from cryptshare.CryptshareValidators import CryptshareValidators
 from cryptshare.NotificationMessage import NotificationMessage
-from cryptshare.SecurityMode import SecurityMode
+from cryptshare.TransferSettings import TransferSettings
 
 logger = logging.getLogger(__name__)
 
@@ -34,6 +38,8 @@ class CryptshareClient(ApiRequestHandler):
 
     def __init__(self, server, client_store_path="client_store.json", ssl_verify=True):
         logger.info(f"Initialising Cryptshare Client for server: {server}")
+        if not CryptshareValidators.is_valid_server_url(server):
+            raise ValueError("Invalid Cryptshare server URL")
         self._server = server
         self.client_store_path = client_store_path
         self.ssl_verify = ssl_verify
@@ -175,28 +181,16 @@ class CryptshareClient(ApiRequestHandler):
             return True
         return False
 
-    def start_transfer(self, recipients, settings: TransferSettings) -> Transfer:
+    def start_transfer(self, recipients, settings: TransferSettings) -> CryptshareTransfer:
         logger.debug(f"Starting transfer for {self.sender_email} to {recipients} with settings {settings}")
-        transfer = Transfer(
-            self.header,
-            recipients.get("to"),
-            recipients.get("cc"),
-            recipients.get("bcc"),
+        transfer = CryptshareTransfer(
             settings,
-            ssl_verify=self.ssl_verify,
+            to=recipients.get("to"),
+            cc=recipients.get("cc"),
+            bcc=recipients.get("bcc"),
         )
-        path = f"{self.api_path('users')}{self.sender_email}/transfer-sessions"
-        logger.info(f"Starting transfer for {self.sender_email} from {path}")
-        r = self._handle_response(
-            requests.post(
-                path,
-                verify=self.ssl_verify,
-                headers=self.header.extra_header({"Content-Type": "application/json"}),
-                json=transfer.get_data(),
-            )
-        )
-        transfer.set_location(r)
-        transfer.edit_transfer_settings(settings)
+        transfer.start_transfer_session(self, settings)
+        transfer.edit_transfer_settings(self, settings)
         return transfer
 
     def request_client_id(self):
@@ -312,7 +306,7 @@ class CryptshareClient(ApiRequestHandler):
 
     def transfer_status(
         self,
-        transfer_transfer_id: str = None,
+        transfer_tracking_id: str = None,
         sender_name: str = None,
         sender_phone: str = None,
         sender_email: str = None,
@@ -333,27 +327,22 @@ class CryptshareClient(ApiRequestHandler):
             sender.setup_and_verify_sender(self)
             self._sender = sender
 
-        if transfer_transfer_id is None:
+        if transfer_tracking_id is None:
             all_transfers = self.get_transfers()
             logger.debug("Transfer status for all transfers\n")
             transfer_status_list = []
             for list_transfer in all_transfers:
                 tracking_id = list_transfer["trackingId"]
-                transfer = Transfer(self.header, [], [], [], TransferSettings(self.sender_email))
-                status_location = f"{self.server}/api/users/{self.sender_email}/transfers/{tracking_id}"
-                transfer.set_location(status_location)
-                transfer = transfer.get_transfer_status()
+                transfer = CryptshareTransfer(TransferSettings(self._sender), tracking_id=tracking_id)
+                transfer = transfer.get_transfer_status(self)
                 status = {"trackingID": tracking_id, "status": transfer["status"]}
                 transfer_status_list.append(status)
             return transfer_status_list
 
-        logger.debug(f"Transfer status for transfer {transfer_transfer_id}\n")
-        transfer = Transfer(self.header, [], [], [], TransferSettings(self.sender_email))
-        status_location = f"{self.api_path("users")}{self.sender_email}/transfers/{transfer_transfer_id}"
-        transfer.set_location(status_location)
-        transfer = transfer.get_transfer_status()
-        status = transfer["status"]
-        return status
+        logger.debug(f"Transfer status for transfer {transfer_tracking_id}\n")
+        transfer = CryptshareTransfer(TransferSettings(self._sender), tracking_id=transfer_tracking_id)
+        transfer_status = transfer.get_transfer_status(self)
+        return transfer_status
 
     def send_transfer(
         self,
@@ -393,11 +382,11 @@ class CryptshareClient(ApiRequestHandler):
             self._sender = sender
 
         # ToDo: show password rules to user, when asking for password
-        transfer_security_mode = SecurityMode(password=transfer_password, mode="MANUAL")
+        transfer_security_mode = CryptshareTransferSecurityMode(password=transfer_password, mode=SecurityMode.MANUAL)
         if transfer_password == "" or transfer_password is None:
             transfer_password = self.get_password().get("password")
             print(f"Generated Password to receive Files: {transfer_password}")
-            transfer_security_mode = SecurityMode(password=transfer_password, mode="GENERATED")
+            transfer_security_mode = CryptshareTransferSecurityMode(password=transfer_password)
         else:
             passwort_validated_response = self.validate_password(transfer_password)
             valid_password = passwort_validated_response.get("valid")
@@ -426,21 +415,17 @@ class CryptshareClient(ApiRequestHandler):
         )
 
         #  Start of transfer on server side
-        transfer = self.start_transfer(
-            {
-                "bcc": transformed_bcc_recipients,
-                "cc": transformed_cc_recipients,
-                "to": transformed_recipients,
-            },
-            settings,
+        transfer = CryptshareTransfer(
+            settings, to=transformed_recipients, cc=transformed_cc_recipients, bcc=transformed_bcc_recipients
         )
+        transfer.set_generated_password(transfer_password)
+        transfer.start_transfer_session(self, settings)
         for file in files:
             transfer.upload_file(self, file)
 
-        pre_transfer_info = transfer.get_transfer_settings()
+        pre_transfer_info = transfer.get_transfer_settings(self)
         logger.debug(f"Pre-Transfer info: \n{pre_transfer_info}")
-        transfer.send_transfer()
-        post_transfer_info = transfer.get_transfer_status()
+        transfer.send_transfer(self)
+        post_transfer_info = transfer.get_transfer_status(self)
         logger.debug(f" Post-Transfer info: \n{post_transfer_info}")
-        transfer_id = transfer.get_transfer_id()
-        print(f"Transfer {transfer_id} uploaded successfully.")
+        print(f"Transfer {transfer.tracking_id} uploaded successfully.")

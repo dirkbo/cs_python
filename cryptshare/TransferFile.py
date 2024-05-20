@@ -62,9 +62,8 @@ class TransferFile(ApiRequestHandler):
     def delete_upload(self, cryptshare_client: CryptshareClient):
         logger.debug(f"Deleting uploaded file {self.name} from {self._location}")
         self._handle_response(
-            requests.delete(self._location,
-                            verify=cryptshare_client.ssl_verify,
-                            headers=cryptshare_client.header.request_header
-                            )
+            requests.delete(
+                self._location, verify=cryptshare_client.ssl_verify, headers=cryptshare_client.header.request_header
+            )
         )
         return True

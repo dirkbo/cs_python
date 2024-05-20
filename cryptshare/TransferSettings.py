@@ -2,6 +2,7 @@ import logging
 from datetime import datetime
 
 from cryptshare import CryptshareSender
+from cryptshare.CryptshareTransferSecurityMode import CryptshareTransferSecurityMode
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +24,7 @@ class TransferSettings:
         recipient_language=None,
         classification_id=None,
         confidential_message_file_id=None,
-        security_mode=None,
+        security_mode: CryptshareTransferSecurityMode = None,
     ):
         logger.debug("Initialising TransferSettings")
         self.expiration_date = expiration_date

@@ -12,9 +12,11 @@ sys.path.insert(0, parentdir)
 
 import cryptshare.CryptshareClient as CryptshareClient
 import cryptshare.NotificationMessage as NotificationMessage
-import cryptshare.SecurityMode as SecurityMode
-import cryptshare.CryptshareSender as Sender
 import cryptshare.TransferSettings as Settings
+from cryptshare.CryptshareTransferSecurityMode import (
+    CryptshareTransferSecurityMode,
+    SecurityMode,
+)
 
 # Please change these parameters accordingly to your setup
 cryptshare_server_url = os.getenv("CRYPTSHARE_SERVER_URL", "https://beta.cryptshare.com")
@@ -280,7 +282,7 @@ def main():
         expiration_date,
         NotificationMessage.NotificationMessage("test", "Test the REST"),
         send_download_notifications=True,
-        security_mode=SecurityMode.SecurityMode(password=transfer_password),
+        security_mode=CryptshareTransferSecurityMode(password=transfer_password),
     )
     # settings = Settings.TransferSettings(sender, expirationdate,
     #                                     NotificationMessage.NotificationMessage("test", "Test the REST"), send_download_notifications=True,

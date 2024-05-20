@@ -1,11 +1,11 @@
 import logging
 import os
-import re
 from datetime import datetime, timedelta
 
 import questionary
 
-from cryptshare import CryptshareSender, CryptshareClient
+from cryptshare import CryptshareClient, CryptshareSender
+from cryptshare.CryptshareValidators import CryptshareValidators
 
 logger = logging.getLogger(__name__)
 
@@ -30,54 +30,6 @@ class QuestionaryCryptshareSender(CryptshareSender):
             return False
         print(f"Sender {self._email} is verified until {verification['validUntil']}.")
         return True
-
-
-def is_valid_email_or_blank(email):
-    if email is None or email == "":
-        return True
-    # Make a regular expression for validating an Email
-    regex = r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,7}\b"
-
-    if re.fullmatch(regex, email):
-        return True
-    return False
-
-
-def is_valid_email(email):
-    if email is None or email == "":
-        return False
-    return is_valid_email_or_blank(email)
-
-
-def is_valid_server(server):
-    if server is None or server == "":
-        return False
-    # Make a regular expression for validating a URL
-    regex = r"(http|https)://[a-zA-Z0-9.-]+\.[a-zA-Z]{2,7}"
-
-    if re.fullmatch(regex, server):
-        return True
-    return False
-
-
-def is_valid_tracking_id(tracking_id: str):
-    if tracking_id is None or tracking_id == "":
-        return True
-    # Regular expression for validating a tracking id
-    regex = r"[0-9]{8}-[0-9]{6}-.{8}"
-    if re.fullmatch(regex, tracking_id):
-        return True
-    return False
-
-
-def is_valid_transfer_id(transfer_id: str):
-    if transfer_id is None or transfer_id == "":
-        return False
-    # Regular expression for validating a transfer id
-    regex = r"[0-z]{10}"
-    if re.fullmatch(regex, transfer_id):
-        return True
-    return False
 
 
 def clean_expiration(date_string_value, default_days=2):
@@ -200,6 +152,16 @@ def is_valid_expiration(date_string_value):
     return True
 
 
+def is_valid_multiple_emails(email_list: str):
+    if email_list is None or email_list == "":
+        return True
+    emails = email_list.split(" ")
+    for email in emails:
+        if not CryptshareValidators.is_valid_email(email):
+            return False
+    return True
+
+
 def clean_string_list(string_list):
     """
     This function is used to clean and standardize the input string list.
@@ -244,6 +206,7 @@ def send_password_with_twilio(tracking_id, password, recipient_sms, recipient_em
     # To set up environmental variables, see http://twil.io/secure
 
     if not twilio_sms_is_configured():
+        logger.info(f"Twilio SMS is not configured. SMS not sent to {recipient_sms}.")
         return
 
     account_sid = os.getenv("TWILIO_ACCOUNT_SID", None)
@@ -251,7 +214,7 @@ def send_password_with_twilio(tracking_id, password, recipient_sms, recipient_em
     sender_phone = os.getenv("TWILIO_SENDER_PHONE", None)
     # Twilio trail accounts can only send SMS from and to verified numbers
 
-    message = f"To access your Cryptshare Transfer {tracking_id} the password is {password}"
+    message = f'To access your Cryptshare Transfer "{tracking_id}" the password is "{password}"'
     if recipient_email is not None:
         message = (
             f"To access the Cryptshare transfer {tracking_id} sent to {recipient_email}, the password is {password}"

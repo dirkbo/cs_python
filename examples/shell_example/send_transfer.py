@@ -1,17 +1,21 @@
-import logging
 import itertools
+import logging
 
 from helpers import (
+    QuestionaryCryptshareSender,
     clean_expiration,
     clean_string_list,
     send_password_with_twilio,
     twilio_sms_is_configured,
-    QuestionaryCryptshareSender,
 )
 
 from cryptshare import CryptshareClient, CryptshareSender
+from cryptshare.CryptshareTransfer import CryptshareTransfer
+from cryptshare.CryptshareTransferSecurityMode import (
+    CryptshareTransferSecurityMode,
+    SecurityMode,
+)
 from cryptshare.NotificationMessage import NotificationMessage
-from cryptshare.SecurityMode import SecurityMode
 from cryptshare.TransferSettings import TransferSettings
 
 logger = logging.getLogger(__name__)
@@ -41,7 +45,6 @@ def send_transfer(
     recipients = clean_string_list(recipients)
     cc = clean_string_list(cc)
     bcc = clean_string_list(bcc)
-    expiration_date = clean_expiration(expiration_date)
 
     transformed_recipients = [{"mail": recipient} for recipient in recipients]
     transformed_cc_recipients = [{"mail": recipient} for recipient in cc]
@@ -80,7 +83,7 @@ def send_transfer(
             show_generated_pasword = True
 
     # ToDo: show password rules to user, when asking for password
-    transfer_security_mode = SecurityMode(password=transfer_password, mode="MANUAL")
+    transfer_security_mode = CryptshareTransferSecurityMode(password=transfer_password, mode=SecurityMode.MANUAL)
     if transfer_password == "" or transfer_password is None:
         transfer_password = cryptshare_client.get_password().get("password")
         if not show_generated_pasword:
@@ -91,7 +94,7 @@ def send_transfer(
                 print(
                     "Number of phone numbers does not match number of email addresses. SMS might not be sent to all recipients."
                 )
-        transfer_security_mode = SecurityMode(password=transfer_password, mode="GENERATED")
+        transfer_security_mode = CryptshareTransferSecurityMode(password=transfer_password)
     else:
         passwort_validated_response = cryptshare_client.validate_password(transfer_password)
         valid_password = passwort_validated_response.get("valid")
@@ -122,25 +125,21 @@ def send_transfer(
     )
 
     #  Start of transfer on server side
-    transfer = cryptshare_client.start_transfer(
-        {
-            "bcc": transformed_bcc_recipients,
-            "cc": transformed_cc_recipients,
-            "to": transformed_recipients,
-        },
-        settings,
+    transfer = CryptshareTransfer(
+        settings, to=transformed_recipients, cc=transformed_cc_recipients, bcc=transformed_bcc_recipients
     )
+
+    transfer.start_transfer_session(cryptshare_client, settings)
     for file in files:
         transfer.upload_file(cryptshare_client, file)
 
-    pre_transfer_info = transfer.get_transfer_settings()
+    pre_transfer_info = transfer.get_transfer_settings(cryptshare_client)
     logger.debug(f"Pre-Transfer info: \n{pre_transfer_info}")
-    transfer.send_transfer()
-    post_transfer_info = transfer.get_transfer_status()
+    transfer.send_transfer(cryptshare_client)
+    post_transfer_info = transfer.get_transfer_status(cryptshare_client)
     logger.debug(f" Post-Transfer info: \n{post_transfer_info}")
-    cryptshare_client.write_client_store()
-    transfer_id = transfer.get_transfer_id()
-    print(f"Transfer {transfer_id} uploaded successfully.")
-    if twilio_sms_is_configured() and recipient_sms_phones is not None:
+
+    print(f"Transfer {transfer.tracking_id} uploaded successfully.")
+    if recipient_sms_phones:
         for recipient_sms in recipient_sms_phones:
-            send_password_with_twilio(transfer_id, transfer_password, recipient_sms)
+            send_password_with_twilio(transfer.tracking_id, transfer_password, recipient_sms)
