@@ -27,14 +27,11 @@ logger = logging.getLogger(__name__)
 
 class TqdmFile(TransferFile):
     def upload(self, cryptshare_client: CryptshareClient):
-        url = f"{self._location}/content"
-        logger.info(f"Uploading file {self.name} content to {url}")
-        file_path = self.path
-        upload_url = url
+        upload_url = f"{self._location}/content"
+        logger.info(f"Uploading file {self.name} content to {upload_url}")
 
-        file_size = os.stat(file_path).st_size
-        with open(file_path, "rb") as f:
-            with tqdm(total=file_size, unit="B", unit_scale=True, unit_divisor=1024) as t:
+        with open(self.path, "rb") as f:
+            with tqdm(total=self.size, unit="B", unit_scale=True, unit_divisor=1024) as t:
                 wrapped_file = CallbackIOWrapper(t.update, f, "read")
                 requests.put(
                     upload_url,

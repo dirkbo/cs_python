@@ -14,6 +14,11 @@ logger = logging.getLogger(__name__)
 
 class TransferFile(ApiRequestHandler):
     _location: str = ""
+    _file_id: str = ""
+    size: int
+    name: str
+    path: str
+    checksum: str
 
     def __init__(self, path: str):
         logger.debug(f"Initialising Cryptshare TransferFile object for file: {path}")
