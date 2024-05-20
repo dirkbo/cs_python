@@ -1,3 +1,4 @@
+import hashlib
 import itertools
 import logging
 import os
@@ -26,8 +27,15 @@ logger = logging.getLogger(__name__)
 
 
 class TqdmFile(TransferFile):
-    def upload(self, cryptshare_client: CryptshareClient):
-        upload_url = f"{self._location}/content"
+    def calculate_checksum(self):
+        logger.debug("Calculating checksum")  # Calculate file hashsum
+        with open(self.path, "rb") as data:
+            file_content = data.read()
+            self.checksum = hashlib.sha256(file_content).hexdigest()
+            print(f"Checksum for {self.name}: {self.checksum}")
+
+    def upload_file_content(self):
+        upload_url = f"{self.transfer_session_url}/files/{self._file_id}/content"
         logger.info(f"Uploading file {self.name} content to {upload_url}")
 
         with open(self.path, "rb") as f:
@@ -36,8 +44,8 @@ class TqdmFile(TransferFile):
                 requests.put(
                     upload_url,
                     data=wrapped_file,
-                    verify=cryptshare_client.ssl_verify,
-                    headers=cryptshare_client.header.request_header,
+                    verify=self._cryptshare_client.ssl_verify,
+                    headers=self._cryptshare_client.header.request_header,
                 )
         return True
 
@@ -50,19 +58,13 @@ class TqdmTransfer(CryptshareTransfer):
         if not self._session_is_open:
             logger.error("Cryptshare Transfer Session is not open, can't upload file")
             return None
+
         url = f"{self.get_transfer_session_url()}/files"
         logger.debug(f"Uploading file {path} to {url}")
-        file = TqdmFile(path)
-        r = self._handle_response(
-            requests.post(
-                url,
-                verify=self._cryptshare_client.ssl_verify,
-                headers=self._cryptshare_client.header.request_header,
-                json=file.data(),
-            )
-        )
-        file.set_location(r)
-        file.upload(self._cryptshare_client)
+
+        file = TqdmFile(path, self.tracking_id, self._cryptshare_client)
+        file.announce_upload()
+        file.upload_file_content()
         self.files.append(file)
         return file
 
@@ -180,6 +182,7 @@ def send_transfer(
     )
 
     transfer.start_transfer_session(settings)
+    print("Uploading files to transfer...")
     for file in files:
         transfer.upload_file(file)
 

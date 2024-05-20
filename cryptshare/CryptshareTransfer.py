@@ -13,22 +13,44 @@ logger = logging.getLogger(__name__)
 
 
 class TransferFile(ApiRequestHandler):
+    _cryptshare_client: CryptshareClient = None
     _location: str = ""
     _file_id: str = ""
+    _tracking_id: str = ""
     size: int
     name: str
     path: str
     checksum: str
 
-    def __init__(self, path: str):
+    def __init__(self, path: str, session_tracking_id: str, cryptshare_client: CryptshareClient):
         logger.debug(f"Initialising Cryptshare TransferFile object for file: {path}")
         self.size = os.stat(path).st_size
         self.name = os.path.basename(path)
         self.path = path
-        # Calculate file hashsum
+        self._cryptshare_client = cryptshare_client
+        self._tracking_id = session_tracking_id
+        self.calculate_checksum()
+
+    def calculate_checksum(self):
+        logger.debug("Calculating checksum")  # Calculate file hashsum
         with open(self.path, "rb") as data:
             file_content = data.read()
             self.checksum = hashlib.sha256(file_content).hexdigest()
+
+    @staticmethod
+    def get_file_id_from_returned_url(url: str):
+        logger.debug("Getting file ID")
+        try:
+            file_id = url.split("/")[-1]
+        except IndexError:
+            logger.error("No file ID found in location URL")
+            return None
+        else:
+            return file_id
+
+    @property
+    def transfer_session_url(self):
+        return f"{self._cryptshare_client.api_path("users")}{self._cryptshare_client.sender_email}/transfer-sessions/{self._tracking_id}"
 
     def set_location(self, location):
         logger.debug(f"Setting location to {location}")
@@ -38,37 +60,42 @@ class TransferFile(ApiRequestHandler):
         logger.debug("Returning TransferFile data")
         return {"fileName": self.name, "size": self.size, "checksum": self.checksum}
 
-    def announce_upload(self, cryptshare_client: CryptshareClient, transfer_id: str):
-        url = f"{self._location}/files"
+    def announce_upload(self):
+        url = f"{self.transfer_session_url}/files"
+        logger.info(f"Announcing file {self.name} upload to {url}")
         r = self._handle_response(
             requests.post(
                 url,
-                verify=cryptshare_client.ssl_verify,
-                headers=cryptshare_client.header.request_header,
+                verify=self._cryptshare_client.ssl_verify,
+                headers=self._cryptshare_client.header.request_header,
                 json=self.data(),
             )
         )
-        self.set_location(r)
+        logger.debug(f"File upload announced at {r}")
+        self._file_id = self.get_file_id_from_returned_url(r)
+        logger.debug(f"File ID: {self._file_id}")
 
-    def upload(self, cryptshare_client: CryptshareClient):
-        url = f"{self._location}/content"
+    def upload_file_content(self):
+        url = f"{self.transfer_session_url}/files/{self._file_id}/content"
         logger.info(f"Uploading file {self.name} content to {url}")
         data = open(self.path, "rb").read()
         self._handle_response(
             requests.put(
                 url,
                 data=data,
-                verify=cryptshare_client.ssl_verify,
-                headers=cryptshare_client.header.request_header,
+                verify=self._cryptshare_client.ssl_verify,
+                headers=self._cryptshare_client.header.request_header,
             )
         )
         return True
 
-    def delete_upload(self, cryptshare_client: CryptshareClient):
-        logger.debug(f"Deleting uploaded file {self.name} from {self._location}")
+    def delete_upload(self):
+        url = f"{self.transfer_session_url}"
+        logger.debug(f"Deleting uploaded file {self.name} from {url}")
+        # ToDo: Will it delete the file or the transfer session?
         self._handle_response(
             requests.delete(
-                self._location, verify=cryptshare_client.ssl_verify, headers=cryptshare_client.header.request_header
+                url, verify=self._cryptshare_client.ssl_verify, headers=self._cryptshare_client.header.request_header
             )
         )
         return True
@@ -194,19 +221,13 @@ class CryptshareTransfer(ApiRequestHandler):
         if not self._session_is_open:
             logger.error("Cryptshare Transfer Session is not open, can't upload file")
             return None
+
         url = f"{self.get_transfer_session_url()}/files"
         logger.debug(f"Uploading file {path} to {url}")
-        file = TransferFile(path)
-        r = self._handle_response(
-            requests.post(
-                url,
-                verify=self._cryptshare_client.ssl_verify,
-                headers=self._cryptshare_client.header.request_header,
-                json=file.data(),
-            )
-        )
-        file.set_location(r)
-        file.upload(self._cryptshare_client)
+
+        file = TransferFile(path, self.tracking_id, self._cryptshare_client)
+        file.announce_upload()
+        file.upload_file_content()
         self.files.append(file)
         return file
 
