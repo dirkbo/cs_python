@@ -1,4 +1,5 @@
 import logging
+from datetime import datetime
 
 from cryptshare import CryptshareSender
 
@@ -9,7 +10,7 @@ class TransferSettings:
     def __init__(
         self,
         sender: CryptshareSender,
-        expiration_date=None,
+        expiration_date: str = None,
         notification_message=None,
         file_checksum_algorithm=None,
         show_zip_file_content=None,

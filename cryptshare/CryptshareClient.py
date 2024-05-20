@@ -58,17 +58,26 @@ class CryptshareClient(ApiRequestHandler):
         logger.debug("Resetting headers")
         self.header = CryptshareHeader()
 
+    def get_verification_from_store(self, email: str = None):
+        if email is None:
+            email = self.sender_email
+        hashed_email = hashlib.shake_256(email.encode("utf-8")).hexdigest(16)
+        if hashed_email in self._client_store:
+            logger.debug(f"Verification token for {email} found in client store")
+            return self._client_store.get(hashed_email)
+        logger.debug(f"No Verification token for {email} found in client store")
+        return ""
+
+    def set_verification_in_store(self, email: str, verification_token: str):
+        hashed_email = hashlib.shake_256(email.encode("utf-8")).hexdigest(16)
+        logger.debug(f"Setting verification token for {email} in client store")
+        self._client_store.update({hashed_email: verification_token})
+
     def set_sender(self, sender_email: str, sender_name: str = "REST-API Sender", sender_phone: str = "0"):
         logger.debug(f"Setting Cryptshare Client sender to {sender_email}")
         self.read_client_store()
         self._sender = CryptshareSender(sender_name, sender_phone, sender_email)
-        if sender_email in self._client_store:
-            logger.debug(f"Setting verification token for {sender_email} from client store")
-            verification = self._client_store.get(sender_email)
-            self.header.verification_token = verification
-        else:
-            logger.debug(f"No verification token found for {sender_email}, not setting verification token")
-            self.header.verification_token = ""
+        self.header.verification_token = self.get_verification_from_store(sender_email)
 
     @property
     def sender(self) -> CryptshareSender:
@@ -115,7 +124,7 @@ class CryptshareClient(ApiRequestHandler):
         )
         verification_token = r.get("token")
         logger.debug(f"Storing verification token for {self.sender_email} in client store")
-        self._client_store.update({self.sender_email: verification_token})
+        self.set_verification_in_store(self.sender_email, verification_token)
         logger.debug(f"Setting verification token for {self.sender_email} in client headers")
         self.header.verification_token = verification_token
         return True
@@ -182,7 +191,7 @@ class CryptshareClient(ApiRequestHandler):
             requests.post(
                 path,
                 verify=self.ssl_verify,
-                headers=self.header.other_header({"Content-Type": "application/json"}),
+                headers=self.header.extra_header({"Content-Type": "application/json"}),
                 json=transfer.get_data(),
             )
         )
@@ -266,7 +275,7 @@ class CryptshareClient(ApiRequestHandler):
             requests.post(
                 path,
                 verify=self.ssl_verify,
-                headers=self.header.other_header({"Content-Type": "application/json"}),
+                headers=self.header.extra_header({"Content-Type": "application/json"}),
                 json={"password": password},
             )
         )
@@ -291,7 +300,7 @@ class CryptshareClient(ApiRequestHandler):
             requests.post(
                 path,
                 verify=self.ssl_verify,
-                headers=self.header.other_header({"Content-Type": "application/json"}),
+                headers=self.header.extra_header({"Content-Type": "application/json"}),
                 json={"recipients": recipients},
             )
         )
@@ -302,11 +311,11 @@ class CryptshareClient(ApiRequestHandler):
         return CryptshareDownload(self, transfer_id, password)
 
     def transfer_status(
-            self,
-            transfer_transfer_id: str = None,
-            sender_name: str = None,
-            sender_phone: str = None,
-            sender_email: str = None,
+        self,
+        transfer_transfer_id: str = None,
+        sender_name: str = None,
+        sender_phone: str = None,
+        sender_email: str = None,
     ):
         #  Reads existing verifications from the 'store' file if any
         self.read_client_store()
@@ -330,7 +339,6 @@ class CryptshareClient(ApiRequestHandler):
             transfer_status_list = []
             for list_transfer in all_transfers:
                 tracking_id = list_transfer["trackingId"]
-                print(f"Transfer status for Tracking ID {tracking_id}:")
                 transfer = Transfer(self.header, [], [], [], TransferSettings(self.sender_email))
                 status_location = f"{self.server}/api/users/{self.sender_email}/transfers/{tracking_id}"
                 transfer.set_location(status_location)
@@ -349,7 +357,6 @@ class CryptshareClient(ApiRequestHandler):
 
     def send_transfer(
         self,
-        origin,
         transfer_password: str,
         expiration_date: datetime,
         files: str,
@@ -362,8 +369,7 @@ class CryptshareClient(ApiRequestHandler):
         sender_name: str = "",
         sender_phone: str = "",
     ) -> None:
-        """ Send a transfer using the Cryptshare server.
-        """
+        """Send a transfer using the Cryptshare server."""
 
         if not recipients:
             recipients = []
@@ -377,17 +383,6 @@ class CryptshareClient(ApiRequestHandler):
         transformed_bcc_recipients = [{"mail": recipient} for recipient in bcc]
         all_recipients = list(itertools.chain(recipients, cc, bcc))
         # All recipients list needed for policy request
-
-        #  Reads existing verifications from the 'store' file if any
-        self.read_client_store()
-
-        #  request client id from server if no client id exists
-        #  Both branches also react on the REST API not licensed
-        if self.exists_client_id() is False:
-            self.request_client_id()
-        else:
-            # Check CORS state for a specific origin.
-            self.cors(origin)
 
         if self._sender is None:
             if sender_email is None:
@@ -440,13 +435,12 @@ class CryptshareClient(ApiRequestHandler):
             settings,
         )
         for file in files:
-            transfer.upload_file(file)
+            transfer.upload_file(self, file)
 
         pre_transfer_info = transfer.get_transfer_settings()
         logger.debug(f"Pre-Transfer info: \n{pre_transfer_info}")
         transfer.send_transfer()
         post_transfer_info = transfer.get_transfer_status()
         logger.debug(f" Post-Transfer info: \n{post_transfer_info}")
-        self.write_client_store()
         transfer_id = transfer.get_transfer_id()
         print(f"Transfer {transfer_id} uploaded successfully.")

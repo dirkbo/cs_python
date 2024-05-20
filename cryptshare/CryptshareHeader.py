@@ -50,8 +50,7 @@ class CryptshareHeader:
         """Headers needed to access generic api endpoints using request"""
         return self._general
 
-    def other_header(self, other):
-        logger.debug(f"Adding other header {other}")
-        new_header = self._general.copy()
-        new_header.update(other)
-        return new_header
+    def extra_header(self, other: dict):
+        logger.info(f"Adding additional other header {other}")
+        logger.debug(f"Current headers: {self._general | other}")
+        return self._general | other

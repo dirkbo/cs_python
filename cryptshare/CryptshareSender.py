@@ -63,12 +63,17 @@ class CryptshareSender:
         if email:
             self._email = email
 
+        #  request client id from server if no client id exists
+        #  Both branches also react on the REST API not licensed
+        if cryptshare_client.exists_client_id() is False:
+            cryptshare_client.request_client_id()
+
         cryptshare_client.read_client_store()
         cryptshare_client.set_sender(self._email, self._name, self._phone)
 
         verification = cryptshare_client.get_verification()
         if verification["verified"] is True:
-            logger.info(f"Sender {email} is verified until {verification['validUntil']}.")
+            logger.info(f"Sender {self._email} is verified until {verification['validUntil']}.")
             return True
 
         if no_user_input:

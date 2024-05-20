@@ -296,7 +296,7 @@ def main():
         settings,
     )
     for file in files:
-        transfer.upload_file(file)
+        transfer.upload_file(cryptshare_client, file)
     pre_transfer_info = transfer.get_transfer_settings()
     if display_transfer_information(transfer.get_transfer_settings()):
         transfer.send_transfer()

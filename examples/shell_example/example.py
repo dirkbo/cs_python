@@ -264,9 +264,7 @@ def main():
         expiration_date = clean_expiration(inputs.expiration)
 
         client = CryptshareClient(default_server_url)
-        client.set_sender(default_sender_email, default_sender_name, default_sender_phone)
         client.send_transfer(
-            origin,
             new_transfer_password,
             expiration_date,
             files,
@@ -275,6 +273,9 @@ def main():
             bcc=bcc,
             subject=inputs.subject,
             message=inputs.message,
+            sender_email=default_sender_email,
+            sender_name=default_sender_name,
+            sender_phone=default_sender_phone,
         )
         return
     elif inputs.mode == "receive":

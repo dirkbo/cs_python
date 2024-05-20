@@ -4,6 +4,7 @@ import requests
 
 import cryptshare.TransferFile as TransferFile
 import cryptshare.TransferSettings as TransferSettings
+from cryptshare import CryptshareClient
 from cryptshare.ApiRequestHandler import ApiRequestHandler
 
 logger = logging.getLogger(__name__)
@@ -59,19 +60,20 @@ class Transfer(ApiRequestHandler):
         logger.debug(f"Setting bcc recipients to {recipients}")
         self.bcc = recipients
 
-    def upload_file(self, path):
-        logger.debug(f"Uploading file {path}")
-        file = TransferFile.TransferFile(path, self.header, ssl_verify=self.ssl_verify)
+    def upload_file(self, cryptshare_client: CryptshareClient, path: str):
+        url = f"{self.location}/files"
+        logger.debug(f"Uploading file {path} to {url}")
+        file = TransferFile.TransferFile(path)
         r = self._handle_response(
             requests.post(
-                self.location + "/files",
+                url,
                 verify=self.ssl_verify,
                 headers=self.header.request_header,
                 json=file.data(),
             )
         )
         file.set_location(r)
-        file.upload()
+        file.upload(cryptshare_client)
         self.files.append(file)
         return file
 

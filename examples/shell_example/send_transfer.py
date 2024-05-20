@@ -5,7 +5,8 @@ from helpers import (
     clean_expiration,
     clean_string_list,
     send_password_with_twilio,
-    twilio_sms_is_configured, QuestionaryCryptshareSender,
+    twilio_sms_is_configured,
+    QuestionaryCryptshareSender,
 )
 
 from cryptshare import CryptshareClient, CryptshareSender
@@ -130,7 +131,7 @@ def send_transfer(
         settings,
     )
     for file in files:
-        transfer.upload_file(file)
+        transfer.upload_file(cryptshare_client, file)
 
     pre_transfer_info = transfer.get_transfer_settings()
     logger.debug(f"Pre-Transfer info: \n{pre_transfer_info}")
