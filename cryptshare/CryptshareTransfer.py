@@ -5,14 +5,14 @@ import os
 import requests
 
 from cryptshare import CryptshareClient, CryptshareSender
-from cryptshare.ApiRequestHandler import ApiRequestHandler
+from cryptshare.CryptshareApiRequestHandler import CryptshareApiRequestHandler
 from cryptshare.CryptshareValidators import CryptshareValidators
 from cryptshare.TransferSettings import TransferSettings
 
 logger = logging.getLogger(__name__)
 
 
-class TransferFile(ApiRequestHandler):
+class TransferFile(CryptshareApiRequestHandler):
     _cryptshare_client: CryptshareClient = None
     _location: str = ""
     _file_id: str = ""
@@ -101,7 +101,7 @@ class TransferFile(ApiRequestHandler):
         return True
 
 
-class CryptshareTransfer(ApiRequestHandler):
+class CryptshareTransfer(CryptshareApiRequestHandler):
     _cryptshare_client: CryptshareClient = None
     files = []
     tracking_id: str = ""

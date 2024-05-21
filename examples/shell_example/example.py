@@ -222,7 +222,7 @@ def download_transfer_interactive(default_server_url, origin):
     ).ask()
     if user_path != "":
         save_path = user_path
-    receive_transfer(origin, dl_server, recipient_transfer_id, password, save_path)
+    receive_transfer(dl_server, recipient_transfer_id, password, save_path)
 
 
 def main():
@@ -268,7 +268,7 @@ def main():
         recipient_transfer_id = inputs.transfer
         password = inputs.password
         save_path = recipient_transfer_id
-        receive_transfer(origin, default_server_url, recipient_transfer_id, password, save_path)
+        receive_transfer(default_server_url, recipient_transfer_id, password, save_path)
         return
     elif inputs.mode == "status":
         client = CryptshareClient(default_server_url)

@@ -7,7 +7,7 @@ from datetime import datetime
 
 import requests
 
-from cryptshare.ApiRequestHandler import ApiRequestHandler
+from cryptshare.CryptshareApiRequestHandler import CryptshareApiRequestHandler
 from cryptshare.CryptshareDownload import CryptshareDownload
 from cryptshare.CryptshareHeader import CryptshareHeader
 from cryptshare.CryptshareSender import CryptshareSender
@@ -23,7 +23,7 @@ from cryptshare.TransferSettings import TransferSettings
 logger = logging.getLogger(__name__)
 
 
-class CryptshareClient(ApiRequestHandler):
+class CryptshareClient(CryptshareApiRequestHandler):
     header = CryptshareHeader()
     _sender: CryptshareSender = None
     _server = ""

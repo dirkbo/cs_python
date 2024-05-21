@@ -1,12 +1,10 @@
 import hashlib
 import itertools
 import logging
-import os
 
 import requests
 from helpers import (
     QuestionaryCryptshareSender,
-    clean_expiration,
     clean_string_list,
     send_password_with_twilio,
     twilio_sms_is_configured,
@@ -104,7 +102,10 @@ def send_transfer(
     print(f" To Recipients: {recipients}")
     print(f" CC Recipients: {cc}")
     print(f" BCC Recipients: {bcc}")
+    print(f" Subject: {subject}")
+    print(f" Message: {message}")
     print(f" Files: {files}")
+    print(f" Expiration Date: {expiration_date}")
 
     #  Reads existing verifications from the 'store' file if any
     cryptshare_client.read_client_store()
@@ -162,7 +163,6 @@ def send_transfer(
         return
 
     #  Transfer definition
-    subject = subject if subject != "" else None
     notification = NotificationMessage(message, subject)
     settings = TransferSettings(
         sender,

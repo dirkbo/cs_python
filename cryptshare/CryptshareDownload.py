@@ -4,12 +4,12 @@ import os
 import requests
 
 from cryptshare import CryptshareClient
-from cryptshare.ApiRequestHandler import ApiRequestHandler
+from cryptshare.CryptshareApiRequestHandler import CryptshareApiRequestHandler
 
 logger = logging.getLogger(__name__)
 
 
-class CryptshareDownload(ApiRequestHandler):
+class CryptshareDownload(CryptshareApiRequestHandler):
     _cryptshare_client: CryptshareClient = None
 
     def __init__(self, cryptshare_client: CryptshareClient, transfer_id, password):

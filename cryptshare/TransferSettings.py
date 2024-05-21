@@ -3,6 +3,7 @@ from datetime import datetime
 
 from cryptshare import CryptshareSender
 from cryptshare.CryptshareTransferSecurityMode import CryptshareTransferSecurityMode
+from cryptshare.NotificationMessage import NotificationMessage
 
 logger = logging.getLogger(__name__)
 
@@ -12,7 +13,7 @@ class TransferSettings:
         self,
         sender: CryptshareSender,
         expiration_date: str = None,
-        notification_message=None,
+        notification_message: NotificationMessage = None,
         file_checksum_algorithm=None,
         show_zip_file_content=None,
         send_download_notifications=None,
@@ -25,7 +26,7 @@ class TransferSettings:
         classification_id=None,
         confidential_message_file_id=None,
         security_mode: CryptshareTransferSecurityMode = None,
-    ):
+    ) -> None:
         logger.debug("Initialising TransferSettings")
         self.expiration_date = expiration_date
         self.notification_message = notification_message
@@ -44,7 +45,7 @@ class TransferSettings:
         self.confidential_message_file_id = confidential_message_file_id
         self.security_mode = security_mode
 
-    def data(self):
+    def data(self) -> dict:
         logger.debug("Returning TransferSettings data as dict")
         return_dict = {
             "notificationMessage": self.notification_message.data(),
