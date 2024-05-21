@@ -37,21 +37,28 @@ def setup_logging():
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Send and receive files using Cryptshare.")
+    requires_sender = os.getenv("CRYPTSHARE_SENDER_EMAIL", None) is None
+    requires_server = os.getenv("CRYPTSHARE_SERVER", None) is None
     parser.add_argument(
         "-m",
         "--mode",
         help="send or receive files",
         choices=["send", "receive", "status", "interactive"],
-        required=False,
+        default="interactive",
     )
-    parser.add_argument("-s", "--server", help="Cryptshare Server URL", required=False)
+    parser.add_argument("-s", "--server", help="Cryptshare Server URL", required=requires_server)
     # Receive a Transfer
     parser.add_argument("-t", "--transfer", help="Transfer ID of the Transfer to RECEIVE", required=False)
     parser.add_argument("-p", "--password", help="Password of the Transfer to RECEIVE", required=False)
     # Send a Transfer
-    parser.add_argument("-e", "--email", help="Sender Email address to SEND from or check STATUS of a transfer.")
-    parser.add_argument("-n", "--name", help="Name of the Sender to SEND from.")
-    parser.add_argument("--phone", help="Phone number of the sender to SEND from.")
+    parser.add_argument(
+        "-e",
+        "--sender_email",
+        help="Sender Email address to SEND from or check STATUS of a transfer.",
+        required=requires_sender,
+    )
+    parser.add_argument("-n", "--sender_name", help="Name of the Sender to SEND from.", required=requires_sender)
+    parser.add_argument("--sender_phone", help="Phone number of the sender to SEND from.", required=requires_sender)
     parser.add_argument("-f", "--file", help="Path of a file or a folder of files to SEND.", action="append")
     parser.add_argument("--to", help="A Recipient email address to SEND to.", action="append")
     parser.add_argument("--cc", help="A CC email address(es) to SEND to.", action="append")
@@ -237,12 +244,12 @@ def main():
     origin = os.getenv("CRYPTSHARE_CORS_ORIGIN", "https://localhost")
     if inputs.server:
         default_server_url = inputs.server
-    if inputs.email:
-        default_sender_email = inputs.email
-    if inputs.name:
-        default_sender_name = inputs.name
-    if inputs.phone:
-        default_sender_phone = inputs.phone
+    if inputs.sender_email:
+        default_sender_email = inputs.sender_email
+    if inputs.sender_name:
+        default_sender_name = inputs.sender_name
+    if inputs.sender_phone:
+        default_sender_phone = inputs.sender_phone
 
     if inputs.mode == "send":
         new_transfer_password = inputs.password
