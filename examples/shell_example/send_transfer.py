@@ -2,7 +2,6 @@ import hashlib
 import itertools
 import logging
 
-import requests
 from helpers import (
     QuestionaryCryptshareSender,
     clean_string_list,
@@ -25,6 +24,8 @@ logger = logging.getLogger(__name__)
 
 
 class TqdmFile(TransferFile):
+    """File class with tqdm progress bar for file upload"""
+
     def calculate_checksum(self):
         logger.debug("Calculating checksum")  # Calculate file hashsum
         with open(self.path, "rb") as data:
@@ -39,11 +40,13 @@ class TqdmFile(TransferFile):
         with open(self.path, "rb") as f:
             with tqdm(total=self.size, unit="B", unit_scale=True, unit_divisor=1024) as t:
                 wrapped_file = CallbackIOWrapper(t.update, f, "read")
-                requests.put(
+                self._request(
+                    "PUT",
                     upload_url,
                     data=wrapped_file,
                     verify=self._cryptshare_client.ssl_verify,
                     headers=self._cryptshare_client.header.request_header,
+                    handle_response=False,
                 )
         return True
 

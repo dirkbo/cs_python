@@ -20,6 +20,11 @@ Install also development requirements
 
 `pip install -r dev_requirements.txt`
 
+### Understanging the Cryptshare API
+The Cryptshare API is documented in the [Cryptshare REST-API documentation](http://documentation.cryptshare.com).
+
+If you want to see what API Calls are used to perform a specific actions, set the log level for `"cryptshare.CryptshareApiRequestHandler"` to `INFO` or `DEBUG`.
+
 # Configuration
 
 ## Environment variables 

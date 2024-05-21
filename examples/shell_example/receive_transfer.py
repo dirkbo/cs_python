@@ -1,6 +1,5 @@
 import os
 
-import requests
 from tqdm import tqdm
 
 from cryptshare import CryptshareClient
@@ -11,7 +10,7 @@ class TqdmCryptshareDownload(CryptshareDownload):
     """A class to download files from a Cryptshare server with a progress bar."""
 
     def download_file(self, file, directory) -> None:
-        response = requests.get(self.server + file["href"], stream=True)
+        response = self._request("GET", self.server + file["href"], stream=True)
         full_path = os.path.join(directory, file["fileName"])
         os.makedirs(directory, exist_ok=True)
         with open(full_path, "wb") as handle:
