@@ -14,8 +14,8 @@ currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentfram
 parentdir = os.path.dirname(os.path.dirname(currentdir))
 sys.path.insert(0, parentdir)
 from helpers import (
+    QuestionaryCryptshareSender,
     clean_expiration,
-    clean_string_list,
     is_valid_expiration,
     is_valid_multiple_emails,
 )
@@ -23,7 +23,7 @@ from receive_transfer import receive_transfer
 from send_transfer import send_transfer
 from transfer_status import transfer_status
 
-from cryptshare import CryptshareClient, CryptshareSender, CryptshareValidators
+from cryptshare import CryptshareClient, CryptshareValidators
 
 logging.getLogger(__name__)
 LOGGING_CONFIG_FILE = "examples/shell_example/logging_config.json"
@@ -37,21 +37,28 @@ def setup_logging():
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Send and receive files using Cryptshare.")
+    requires_sender = os.getenv("CRYPTSHARE_SENDER_EMAIL", None) is None
+    requires_server = os.getenv("CRYPTSHARE_SERVER", None) is None
     parser.add_argument(
         "-m",
         "--mode",
         help="send or receive files",
         choices=["send", "receive", "status", "interactive"],
-        required=False,
+        default="interactive",
     )
-    parser.add_argument("-s", "--server", help="Cryptshare Server URL", required=False)
+    parser.add_argument("-s", "--server", help="Cryptshare Server URL", required=requires_server)
     # Receive a Transfer
     parser.add_argument("-t", "--transfer", help="Transfer ID of the Transfer to RECEIVE", required=False)
     parser.add_argument("-p", "--password", help="Password of the Transfer to RECEIVE", required=False)
     # Send a Transfer
-    parser.add_argument("-e", "--email", help="Sender Email address to SEND from or check STATUS of a transfer.")
-    parser.add_argument("-n", "--name", help="Name of the Sender to SEND from.")
-    parser.add_argument("--phone", help="Phone number of the sender to SEND from.")
+    parser.add_argument(
+        "-e",
+        "--sender_email",
+        help="Sender Email address to SEND from or check STATUS of a transfer.",
+        required=requires_sender,
+    )
+    parser.add_argument("-n", "--sender_name", help="Name of the Sender to SEND from.", required=requires_sender)
+    parser.add_argument("--sender_phone", help="Phone number of the sender to SEND from.", required=requires_sender)
     parser.add_argument("-f", "--file", help="Path of a file or a folder of files to SEND.", action="append")
     parser.add_argument("--to", help="A Recipient email address to SEND to.", action="append")
     parser.add_argument("--cc", help="A CC email address(es) to SEND to.", action="append")
@@ -105,7 +112,7 @@ def transfer_status_interactive(default_server_url, default_sender_email, origin
         validate=CryptshareValidators.is_valid_tracking_id_or_blank,
     ).ask()
 
-    sender = CryptshareSender(email=sender_email, name="REST-API Sender", phone="0")
+    sender = QuestionaryCryptshareSender(email=sender_email, name="REST-API Sender", phone="0")
     sender.setup_and_verify_sender(client)
     transfer_status(client, transfer_transfer_id)
 
@@ -222,7 +229,7 @@ def download_transfer_interactive(default_server_url, origin):
     ).ask()
     if user_path != "":
         save_path = user_path
-    receive_transfer(origin, dl_server, recipient_transfer_id, password, save_path)
+    receive_transfer(dl_server, recipient_transfer_id, password, save_path)
 
 
 def main():
@@ -230,19 +237,14 @@ def main():
 
     setup_logging()
     inputs = parse_args()
-    default_server_url = os.getenv("CRYPTSHARE_SERVER", "http://localhost")
-    default_sender_email = os.getenv("CRYPTSHARE_SENDER_EMAIL", "")
-    default_sender_name = os.getenv("CRYPTSHARE_SENDER_NAME", "REST-API Sender")
-    default_sender_phone = os.getenv("CRYPTSHARE_SENDER_PHONE", "0")
+
+    default_server_url = os.getenv("CRYPTSHARE_SERVER", "http://localhost") if not inputs.server else inputs.server
+    default_sender_email = os.getenv("CRYPTSHARE_SENDER_EMAIL", "") if not inputs.sender_email else inputs.sender_email
+    default_sender_name = (
+        os.getenv("CRYPTSHARE_SENDER_NAME", "REST-API Sender") if not inputs.sender_name else inputs.sender_name
+    )
+    default_sender_phone = os.getenv("CRYPTSHARE_SENDER_PHONE", "0") if not inputs.sender_phone else inputs.sender_phone
     origin = os.getenv("CRYPTSHARE_CORS_ORIGIN", "https://localhost")
-    if inputs.server:
-        default_server_url = inputs.server
-    if inputs.email:
-        default_sender_email = inputs.email
-    if inputs.name:
-        default_sender_name = inputs.name
-    if inputs.phone:
-        default_sender_phone = inputs.phone
 
     if inputs.mode == "send":
         new_transfer_password = inputs.password
@@ -268,7 +270,7 @@ def main():
         recipient_transfer_id = inputs.transfer
         password = inputs.password
         save_path = recipient_transfer_id
-        receive_transfer(origin, default_server_url, recipient_transfer_id, password, save_path)
+        receive_transfer(default_server_url, recipient_transfer_id, password, save_path)
         return
     elif inputs.mode == "status":
         client = CryptshareClient(default_server_url)

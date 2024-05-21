@@ -7,7 +7,7 @@ from datetime import datetime
 
 import requests
 
-from cryptshare.ApiRequestHandler import ApiRequestHandler
+from cryptshare.CryptshareApiRequestHandler import CryptshareApiRequestHandler
 from cryptshare.CryptshareDownload import CryptshareDownload
 from cryptshare.CryptshareHeader import CryptshareHeader
 from cryptshare.CryptshareSender import CryptshareSender
@@ -23,7 +23,7 @@ from cryptshare.TransferSettings import TransferSettings
 logger = logging.getLogger(__name__)
 
 
-class CryptshareClient(ApiRequestHandler):
+class CryptshareClient(CryptshareApiRequestHandler):
     header = CryptshareHeader()
     _sender: CryptshareSender = None
     _server = ""
@@ -186,7 +186,7 @@ class CryptshareClient(ApiRequestHandler):
             bcc=recipients.get("bcc"),
             cryptshare_client=self,
         )
-        transfer.start_transfer_session(settings)
+        transfer.start_transfer_session()
         transfer.edit_transfer_settings(settings)
         return transfer
 
@@ -408,7 +408,7 @@ class CryptshareClient(ApiRequestHandler):
             notification_message=notification,
             send_download_notifications=True,
             security_mode=transfer_security_mode,
-            expiration_date=expiration_date.astimezone().isoformat(),
+            expiration_date=expiration_date,
         )
 
         #  Start of transfer on server side
@@ -420,7 +420,7 @@ class CryptshareClient(ApiRequestHandler):
             cryptshare_client=self,
         )
         transfer.set_generated_password(transfer_password)
-        transfer.start_transfer_session(settings)
+        transfer.start_transfer_session()
         for file in files:
             transfer.upload_file(file)
 

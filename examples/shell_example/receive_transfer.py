@@ -26,7 +26,7 @@ class TqdmCryptshareDownload(CryptshareDownload):
                 handle.write(data)
 
 
-def receive_transfer(origin, dl_server, recipient_transfer_id, password, save_path):
+def receive_transfer(dl_server, recipient_transfer_id, password, save_path):
     """
     Downloads a transfer from a Cryptshare server.
 
