@@ -284,9 +284,6 @@ def main():
         send_download_notifications=True,
         security_mode=CryptshareTransferSecurityMode(password=transfer_password),
     )
-    # settings = Settings.TransferSettings(sender, expirationdate,
-    #                                     NotificationMessage.NotificationMessage("test", "Test the REST"), send_download_notifications=True,
-    #                                     security_mode=SecurityMode.SecurityMode())
 
     #  Start of transfer on server side
     transfer = cryptshare_client.start_transfer(
@@ -298,7 +295,7 @@ def main():
         settings,
     )
     for file in files:
-        transfer.upload_file(cryptshare_client, file)
+        transfer.upload_file(file)
     pre_transfer_info = transfer.get_transfer_settings()
     if display_transfer_information(transfer.get_transfer_settings()):
         transfer.send_transfer()

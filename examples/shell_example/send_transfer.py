@@ -105,7 +105,6 @@ def send_transfer(
     print(f" Subject: {subject}")
     print(f" Message: {message}")
     print(f" Files: {files}")
-    print(f" Expiration Date: {expiration_date}")
 
     #  Reads existing verifications from the 'store' file if any
     cryptshare_client.read_client_store()
@@ -169,8 +168,9 @@ def send_transfer(
         notification_message=notification,
         send_download_notifications=True,
         security_mode=transfer_security_mode,
-        expiration_date=expiration_date.astimezone().isoformat(),
+        expiration_date=expiration_date,
     )
+    print(f" Expiration Date: {settings.expiration_date}")
 
     #  Start of transfer on server side
     transfer = TqdmTransfer(
@@ -181,7 +181,8 @@ def send_transfer(
         cryptshare_client=cryptshare_client,
     )
 
-    transfer.start_transfer_session(settings)
+    transfer.start_transfer_session()
+    transfer.edit_transfer_settings()
     print("Uploading files to transfer...")
     for file in files:
         transfer.upload_file(file)

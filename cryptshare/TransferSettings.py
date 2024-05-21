@@ -12,7 +12,7 @@ class TransferSettings:
     def __init__(
         self,
         sender: CryptshareSender,
-        expiration_date: str = None,
+        expiration_date: datetime = None,
         notification_message: NotificationMessage = None,
         file_checksum_algorithm=None,
         show_zip_file_content=None,
@@ -28,6 +28,10 @@ class TransferSettings:
         security_mode: CryptshareTransferSecurityMode = None,
     ) -> None:
         logger.debug("Initialising TransferSettings")
+        if expiration_date:
+            formatted_expiration_date = expiration_date.astimezone().strftime("%Y-%m-%dT%H:%M:%S%z")
+            expiration_date = formatted_expiration_date[:-2] + ":" + formatted_expiration_date[-2:]
+        # Expiration date format in REST API: "2020-10-09T11:51:46+02:00"
         self.expiration_date = expiration_date
         self.notification_message = notification_message
         self.security_mode = security_mode

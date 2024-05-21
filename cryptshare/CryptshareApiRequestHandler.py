@@ -9,22 +9,16 @@ logger = logging.getLogger(__name__)
 class CryptshareApiRequestHandler:
     @staticmethod
     def _handle_response(resp):
-        logger.debug("Handling API response")
+        logger.debug(f"Handling API response\n {resp.status_code}\n {resp.headers}\n {resp.content}\n")
         if resp.status_code == 200:  # or requests.code.ok
-            logger.debug("200 OK")
             if len(resp.content) == 0:
-                logger.debug("No content")
                 return
-            logger.debug("Returning data from json content")
             return json.loads(resp.content).get("data")
         if resp.status_code == 201:  # or requests.code.ok
-            logger.debug("201 Created")
             return resp.headers.get("Location")
         if resp.status_code == 204:  # or requests.code.ok
-            logger.debug("204 No Content")
             return
         if resp.status_code == 403:
-            logger.debug("403 Error")
             content = json.loads(resp.content)
             if content.get("errorCode") == 3001:
                 logger.warning("403 Error: 3001")

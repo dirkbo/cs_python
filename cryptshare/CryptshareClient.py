@@ -186,7 +186,7 @@ class CryptshareClient(CryptshareApiRequestHandler):
             bcc=recipients.get("bcc"),
             cryptshare_client=self,
         )
-        transfer.start_transfer_session(settings)
+        transfer.start_transfer_session()
         transfer.edit_transfer_settings(settings)
         return transfer
 
@@ -408,7 +408,7 @@ class CryptshareClient(CryptshareApiRequestHandler):
             notification_message=notification,
             send_download_notifications=True,
             security_mode=transfer_security_mode,
-            expiration_date=expiration_date.astimezone().isoformat(),
+            expiration_date=expiration_date,
         )
 
         #  Start of transfer on server side
@@ -420,7 +420,7 @@ class CryptshareClient(CryptshareApiRequestHandler):
             cryptshare_client=self,
         )
         transfer.set_generated_password(transfer_password)
-        transfer.start_transfer_session(settings)
+        transfer.start_transfer_session()
         for file in files:
             transfer.upload_file(file)
 
