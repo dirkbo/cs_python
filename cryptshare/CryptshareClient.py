@@ -5,9 +5,7 @@ import logging
 import os
 from datetime import datetime
 
-import requests
-
-from cryptshare.CryptshareApiRequestHandler import CryptshareApiRequestHandler
+from cryptshare.CryptshareApiRequests import CryptshareApiRequests
 from cryptshare.CryptshareDownload import CryptshareDownload
 from cryptshare.CryptshareHeader import CryptshareHeader
 from cryptshare.CryptshareSender import CryptshareSender
@@ -23,7 +21,7 @@ from cryptshare.TransferSettings import TransferSettings
 logger = logging.getLogger(__name__)
 
 
-class CryptshareClient(CryptshareApiRequestHandler):
+class CryptshareClient(CryptshareApiRequests):
     header = CryptshareHeader()
     _sender: CryptshareSender = None
     _server = ""
@@ -109,24 +107,17 @@ class CryptshareClient(CryptshareApiRequestHandler):
     def request_code(self) -> None:
         path = self.api_path("users") + self.sender_email + "/verification/code/email"
         logger.info(f"Requesting verification code for {self.sender_email} from {path}")
-        self._handle_response(
-            requests.post(
-                path,
-                verify=self.ssl_verify,
-                headers=self.header.request_header,
-            )
-        )
+        self._request("POST", path, verify=self.ssl_verify, headers=self.header.request_header)
 
     def verify_code(self, code: str) -> bool:
         url = f"{self.api_path('users')}{self.sender_email}/verification/token"
         logger.info(f"Verifying code {code} for {self.sender_email} from {url} to obtain verification token")
-        r = self._handle_response(
-            requests.post(
-                url,
-                json={"verificationCode": code},
-                verify=self.ssl_verify,
-                headers=self.header.request_header,
-            )
+        r = self._request(
+            "POST",
+            url,
+            json={"verificationCode": code},
+            verify=self.ssl_verify,
+            headers=self.header.request_header,
         )
         verification_token = r.get("token")
         logger.debug(f"Storing verification token for {self.sender_email} in client store")
@@ -139,12 +130,11 @@ class CryptshareClient(CryptshareApiRequestHandler):
         path = f"{self.api_path('users')}{self.sender_email}/verification"
         logger.info(f"Checking if {self.sender_email} is verified from {path}")
 
-        r = self._handle_response(
-            requests.get(
-                path,
-                verify=self.ssl_verify,
-                headers=self.header.request_header,
-            )
+        r = self._request(
+            "GET",
+            path,
+            verify=self.ssl_verify,
+            headers=self.header.request_header,
         )
         return r.get("verified", False)
 
@@ -152,12 +142,11 @@ class CryptshareClient(CryptshareApiRequestHandler):
         path = f"{self.api_path('users')}{self.sender_email}/verification"
         logger.info(f"Getting verification status for {self.sender_email} from {path}")
 
-        r = self._handle_response(
-            requests.get(
-                path,
-                verify=self.ssl_verify,
-                headers=self.header.request_header,
-            )
+        r = self._request(
+            "GET",
+            path,
+            verify=self.ssl_verify,
+            headers=self.header.request_header,
         )
         return r
 
@@ -166,9 +155,7 @@ class CryptshareClient(CryptshareApiRequestHandler):
         logger.info(f"Checking CORS for origin {origin} and {path}")
         origin_header = {"Origin": origin}
 
-        r = self._handle_response(
-            requests.get(path, verify=self.ssl_verify, headers=self.header.extra_header(origin_header))
-        )
+        r = self._request("GET", path, verify=self.ssl_verify, headers=self.header.extra_header(origin_header))
         logger.info(f"CORS is active for origin {origin}: {r.get('active')}")
 
     def exists_client_id(self) -> bool:
@@ -193,12 +180,11 @@ class CryptshareClient(CryptshareApiRequestHandler):
     def request_client_id(self):
         path = self.api_path("clients")
         logger.info(f"Requesting client ID from {path}")
-        r = self._handle_response(
-            requests.get(
-                path,
-                verify=self.ssl_verify,
-                headers=self.header.request_header,
-            )
+        r = self._request(
+            "GET",
+            path,
+            verify=self.ssl_verify,
+            headers=self.header.request_header,
         )
         logger.debug("Storing client ID in client store")
         self.header.client_id = r.get("clientId")
@@ -238,62 +224,57 @@ class CryptshareClient(CryptshareApiRequestHandler):
     def get_password_rules(self):
         path = self.api_path("password_requirements")
         logger.info(f"Getting password rules from {path}")
-        r = self._handle_response(
-            requests.get(
-                path,
-                verify=self.ssl_verify,
-                headers=self.header.request_header,
-            )
+        r = self._request(
+            "GET",
+            path,
+            verify=self.ssl_verify,
+            headers=self.header.request_header,
         )
         return r
 
     def get_transfers(self) -> dict:
         path = self.api_path("users") + self.sender_email + "/transfers"
         logger.info(f"Getting transfers for {self.sender_email} from {path}")
-        r = self._handle_response(
-            requests.get(
-                path,
-                verify=self.ssl_verify,
-                headers=self.header.request_header,
-            )
+        r = self._request(
+            "GET",
+            path,
+            verify=self.ssl_verify,
+            headers=self.header.request_header,
         )
         return r
 
     def validate_password(self, password):
         path = self.api_path("password")
         logger.info(f"Validating password for {self.sender_email} from {path}")
-        r = self._handle_response(
-            requests.post(
-                path,
-                verify=self.ssl_verify,
-                headers=self.header.extra_header({"Content-Type": "application/json"}),
-                json={"password": password},
-            )
+        r = self._request(
+            "POST",
+            path,
+            verify=self.ssl_verify,
+            headers=self.header.extra_header({"Content-Type": "application/json"}),
+            json={"password": password},
         )
         return r
 
     def get_password(self):
         path = self.api_path("password")
         logger.info(f"Getting generated password from {path}")
-        r = self._handle_response(
-            requests.get(
-                path,
-                verify=self.ssl_verify,
-                headers=self.header.request_header,
-            )
+        r = self._request(
+            "GET",
+            path,
+            verify=self.ssl_verify,
+            headers=self.header.request_header,
         )
         return r
 
     def get_policy(self, recipients):
         path = self.api_path("users") + self.sender_email + "/transfer-policy"
         logger.info(f"Getting policy for {self.sender_email} and  {recipients} from {path}")
-        r = self._handle_response(
-            requests.post(
-                path,
-                verify=self.ssl_verify,
-                headers=self.header.extra_header({"Content-Type": "application/json"}),
-                json={"recipients": recipients},
-            )
+        r = self._request(
+            "POST",
+            path,
+            verify=self.ssl_verify,
+            headers=self.header.extra_header({"Content-Type": "application/json"}),
+            json={"recipients": recipients},
         )
         return r
 

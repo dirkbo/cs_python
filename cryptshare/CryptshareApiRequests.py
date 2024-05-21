@@ -1,15 +1,37 @@
 import json
 import logging
 
-from requests import HTTPError
+import requests
 
 logger = logging.getLogger(__name__)
 
 
-class CryptshareApiRequestHandler:
+class CryptshareApiRequests:
+    def _request(
+        self,
+        method,
+        url,
+        data=None,
+        json=None,
+        headers=None,
+        verify=None,
+        params=None,
+        stream=False,
+        handle_response=True,
+    ):
+        logger.info(f"Sending API request\n {method} {url}")
+        logger.debug(f"\n Data: {data}\n Json: {json}\n Headers: {headers}\n Params: {params}")
+        resp = requests.request(
+            method, url, json=json, data=data, headers=headers, params=params, verify=verify, stream=stream
+        )
+        if stream or not handle_response:
+            return resp
+        return self._handle_response(resp)
+
     @staticmethod
     def _handle_response(resp):
-        logger.debug(f"Handling API response\n {resp.status_code}\n {resp.headers}\n {resp.content}\n")
+        logger.info(f"\nResponse Status code: {resp.status_code}")
+        logger.debug(f" Headers: {resp.headers}\n Content: {resp.content}\n")
         if resp.status_code == 200:  # or requests.code.ok
             if len(resp.content) == 0:
                 return
@@ -23,12 +45,12 @@ class CryptshareApiRequestHandler:
             if content.get("errorCode") == 3001:
                 logger.warning("403 Error: 3001")
                 err_msg = f"403 Error \n{content.get('errorCode')}\n{content.get('errorMessage')}\nPlease install a valid Cryptshare license on this Cryptshare server where the REST API is licensed."
-                raise HTTPError(err_msg)
+                raise requests.HTTPError(err_msg)
             logger.warning(f"403 Error: {content.get('errorCode')} - {content.get('errorMessage')}")
             err_msg = f"403 Error \n{content.get('errorCode')}\n{content.get('errorMessage')}"
-            raise HTTPError(err_msg)
+            raise requests.HTTPError(err_msg)
         if resp.status_code in [400, 401, 404, 406, 409, 410, 429, 500, 501]:
             logger.warning(f"{resp.status_code} Error")
             content = json.loads(resp.content)
             err_msg = f"{resp.status_code} Error \n{content.get('errorCode')}\n{content.get('errorMessage')}"
-            raise HTTPError(err_msg)
+            raise requests.HTTPError(err_msg)

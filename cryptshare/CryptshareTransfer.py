@@ -2,17 +2,15 @@ import hashlib
 import logging
 import os
 
-import requests
-
 from cryptshare import CryptshareClient, CryptshareSender
-from cryptshare.CryptshareApiRequestHandler import CryptshareApiRequestHandler
+from cryptshare.CryptshareApiRequests import CryptshareApiRequests
 from cryptshare.CryptshareValidators import CryptshareValidators
 from cryptshare.TransferSettings import TransferSettings
 
 logger = logging.getLogger(__name__)
 
 
-class TransferFile(CryptshareApiRequestHandler):
+class TransferFile(CryptshareApiRequests):
     _cryptshare_client: CryptshareClient = None
     _location: str = ""
     _file_id: str = ""
@@ -59,13 +57,12 @@ class TransferFile(CryptshareApiRequestHandler):
     def announce_upload(self):
         url = f"{self.transfer_session_url}/files"
         logger.info(f"Announcing file {self.name} upload POST {url}")
-        r = self._handle_response(
-            requests.post(
-                url,
-                verify=self._cryptshare_client.ssl_verify,
-                headers=self._cryptshare_client.header.request_header,
-                json=self.data(),
-            )
+        r = self._request(
+            "POST",
+            url,
+            verify=self._cryptshare_client.ssl_verify,
+            headers=self._cryptshare_client.header.request_header,
+            json=self.data(),
         )
         logger.debug(f"File upload announced at {r}")
         self._file_id = self.get_file_id_from_returned_url(r)
@@ -75,13 +72,12 @@ class TransferFile(CryptshareApiRequestHandler):
         url = f"{self.transfer_session_url}/files/{self._file_id}/content"
         logger.info(f"Uploading file {self.name} content to PUT {url}")
         data = open(self.path, "rb").read()
-        self._handle_response(
-            requests.put(
-                url,
-                data=data,
-                verify=self._cryptshare_client.ssl_verify,
-                headers=self._cryptshare_client.header.request_header,
-            )
+        self._request(
+            "PUT",
+            url,
+            data=data,
+            verify=self._cryptshare_client.ssl_verify,
+            headers=self._cryptshare_client.header.request_header,
         )
         return True
 
@@ -89,15 +85,16 @@ class TransferFile(CryptshareApiRequestHandler):
         url = f"{self.transfer_session_url}"
         logger.debug(f"Deleting uploaded file {self.name}  DELETE {url}")
         # ToDo: Will it delete the file or the transfer session?
-        self._handle_response(
-            requests.delete(
-                url, verify=self._cryptshare_client.ssl_verify, headers=self._cryptshare_client.header.request_header
-            )
+        self._request(
+            "DELETE",
+            url,
+            verify=self._cryptshare_client.ssl_verify,
+            headers=self._cryptshare_client.header.request_header,
         )
         return True
 
 
-class CryptshareTransfer(CryptshareApiRequestHandler):
+class CryptshareTransfer(CryptshareApiRequests):
     _cryptshare_client: CryptshareClient = None
     files = []
     tracking_id: str = ""
@@ -166,13 +163,12 @@ class CryptshareTransfer(CryptshareApiRequestHandler):
         logger.debug(f"Transfer settings: {self._settings.data()}")
         path = f"{self._cryptshare_client.api_path('users')}{self._settings.sender.email}/transfer-sessions"
         logger.info(f"Starting transfer for {self._settings.sender.email}  POST {path}")
-        r = self._handle_response(
-            requests.post(
-                path,
-                verify=self._cryptshare_client.ssl_verify,
-                headers=self._cryptshare_client.header.extra_header({"Content-Type": "application/json"}),
-                json=self.get_sender_and_recipients(),
-            )
+        r = self._request(
+            "POST",
+            path,
+            verify=self._cryptshare_client.ssl_verify,
+            headers=self._cryptshare_client.header.extra_header({"Content-Type": "application/json"}),
+            json=self.get_sender_and_recipients(),
         )
         location = r
         logger.debug(f"Transfer session started at {location}")
@@ -255,10 +251,11 @@ class CryptshareTransfer(CryptshareApiRequestHandler):
             return None
         path = self.get_transfer_session_url()
         logger.info(f"Getting transfer settings from GET {path}")
-        r = self._handle_response(
-            requests.get(
-                path, verify=self._cryptshare_client.ssl_verify, headers=self._cryptshare_client.header.request_header
-            )
+        r = self._request(
+            "GET",
+            path,
+            verify=self._cryptshare_client.ssl_verify,
+            headers=self._cryptshare_client.header.request_header,
         )
         return r
 
@@ -276,13 +273,12 @@ class CryptshareTransfer(CryptshareApiRequestHandler):
 
         path = self.get_transfer_session_url()
         logger.debug(f"Editing transfer settings PATCH {path}")
-        r = self._handle_response(
-            requests.patch(
-                path,
-                json=self._settings.data(),
-                verify=self._cryptshare_client.ssl_verify,
-                headers=self._cryptshare_client.header.request_header,
-            )
+        r = self._request(
+            "PATCH",
+            path,
+            json=self._settings.data(),
+            verify=self._cryptshare_client.ssl_verify,
+            headers=self._cryptshare_client.header.request_header,
         )
         return r
 
@@ -292,10 +288,11 @@ class CryptshareTransfer(CryptshareApiRequestHandler):
 
         path = self.get_transfer_session_url()
         logger.debug(f"Sending transfer POST {path}")
-        r = self._handle_response(
-            requests.post(
-                path, verify=self._cryptshare_client.ssl_verify, headers=self._cryptshare_client.header.request_header
-            )
+        r = self._request(
+            "POST",
+            path,
+            verify=self._cryptshare_client.ssl_verify,
+            headers=self._cryptshare_client.header.request_header,
         )
         self._session_is_open = False
         return r
@@ -306,9 +303,10 @@ class CryptshareTransfer(CryptshareApiRequestHandler):
 
         path = self.get_transfer_status_url()
         logger.debug(f"Getting transfer status GET {path}")
-        r = self._handle_response(
-            requests.get(
-                path, verify=self._cryptshare_client.ssl_verify, headers=self._cryptshare_client.header.request_header
-            )
+        r = self._request(
+            "GET",
+            path,
+            verify=self._cryptshare_client.ssl_verify,
+            headers=self._cryptshare_client.header.request_header,
         )
         return r
