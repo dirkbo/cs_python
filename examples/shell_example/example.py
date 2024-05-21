@@ -15,15 +15,15 @@ parentdir = os.path.dirname(os.path.dirname(currentdir))
 sys.path.insert(0, parentdir)
 from helpers import (
     clean_expiration,
-    clean_string_list,
     is_valid_expiration,
     is_valid_multiple_emails,
+    QuestionaryCryptshareSender,
 )
 from receive_transfer import receive_transfer
 from send_transfer import send_transfer
 from transfer_status import transfer_status
 
-from cryptshare import CryptshareClient, CryptshareSender, CryptshareValidators
+from cryptshare import CryptshareClient, CryptshareValidators
 
 logging.getLogger(__name__)
 LOGGING_CONFIG_FILE = "examples/shell_example/logging_config.json"
@@ -112,7 +112,7 @@ def transfer_status_interactive(default_server_url, default_sender_email, origin
         validate=CryptshareValidators.is_valid_tracking_id_or_blank,
     ).ask()
 
-    sender = CryptshareSender(email=sender_email, name="REST-API Sender", phone="0")
+    sender = QuestionaryCryptshareSender(email=sender_email, name="REST-API Sender", phone="0")
     sender.setup_and_verify_sender(client)
     transfer_status(client, transfer_transfer_id)
 
@@ -237,19 +237,14 @@ def main():
 
     setup_logging()
     inputs = parse_args()
-    default_server_url = os.getenv("CRYPTSHARE_SERVER", "http://localhost")
-    default_sender_email = os.getenv("CRYPTSHARE_SENDER_EMAIL", "")
-    default_sender_name = os.getenv("CRYPTSHARE_SENDER_NAME", "REST-API Sender")
-    default_sender_phone = os.getenv("CRYPTSHARE_SENDER_PHONE", "0")
+
+    default_server_url = os.getenv("CRYPTSHARE_SERVER", "http://localhost") if not inputs.server else inputs.server
+    default_sender_email = os.getenv("CRYPTSHARE_SENDER_EMAIL", "") if not inputs.sender_email else inputs.sender_email
+    default_sender_name = (
+        os.getenv("CRYPTSHARE_SENDER_NAME", "REST-API Sender") if not inputs.sender_name else inputs.sender_name
+    )
+    default_sender_phone = os.getenv("CRYPTSHARE_SENDER_PHONE", "0") if not inputs.sender_phone else inputs.sender_phone
     origin = os.getenv("CRYPTSHARE_CORS_ORIGIN", "https://localhost")
-    if inputs.server:
-        default_server_url = inputs.server
-    if inputs.sender_email:
-        default_sender_email = inputs.sender_email
-    if inputs.sender_name:
-        default_sender_name = inputs.sender_name
-    if inputs.sender_phone:
-        default_sender_phone = inputs.sender_phone
 
     if inputs.mode == "send":
         new_transfer_password = inputs.password

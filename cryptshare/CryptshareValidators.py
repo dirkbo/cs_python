@@ -96,3 +96,20 @@ class CryptshareValidators:
             return True
         logger.debug(f"Invalid Transfer ID: {transfer_id}")
         return False
+
+    @staticmethod
+    def is_valid_verification_code(verification_code: str):
+        """Checks if the verification code is valid
+        :param verification_code: The verification code to validate
+        :return: True if the verification code is valid, False otherwise
+        """
+        if verification_code is None or verification_code == "":
+            logger.debug("Invalid Verification Code: Verification Code is blank, ")
+            return False
+        # Regular expression for validating a verification code
+        regex = r"[0-z]{10}"
+        if re.fullmatch(regex, verification_code):
+            logger.debug(f"Valid Verification Code: {verification_code}")
+            return True
+        logger.debug(f"Invalid Verification Code: {verification_code}")
+        return False

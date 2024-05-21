@@ -1,6 +1,6 @@
 import logging
 
-from cryptshare import CryptshareClient
+from cryptshare import CryptshareClient, CryptshareValidators
 
 logger = logging.getLogger(__name__)
 
@@ -29,12 +29,13 @@ class CryptshareSender:
         """Perform an email verification of the sender. Requires User Input."""
         cryptshare_client.request_code()
         verification_code = input(f"Please enter the verification code sent to your email address ({self._email}):\n")
+        if CryptshareValidators.is_valid_verification_code(verification_code) is False:
+            raise ValueError("Invalid verification code entered.")
         cryptshare_client.verify_code(verification_code.strip())
         verification = cryptshare_client.get_verification()
         if verification.get("verified") is not True:
-            print("Verification failed.")
-            return False
-        print(f"Sender {self._email} is verified until {verification['validUntil']}.")
+            raise ValueError("Invalid verification code entered.")
+        logger.info(f"Sender {self._email} is verified until {verification['validUntil']}.")
         cryptshare_client.write_client_store()
         return True
 
