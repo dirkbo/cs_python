@@ -9,12 +9,14 @@ class CryptshareSender:
     _name: str = ""
     _phone: str = ""
     _email: str = ""
+    language: str = "en"
 
-    def __init__(self, name: str, phone: str, email: str):
+    def __init__(self, name: str, phone: str, email: str, language: str = "en") -> None:
         logger.debug("Initialising Sender")
         self._name = name
         self._phone = phone
         self._email = email
+        self.language = language
 
     @property
     def email(self) -> str:

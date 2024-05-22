@@ -24,3 +24,8 @@ extend-ignore = [
     # https://black.readthedocs.io/en/stable/the_black_code_style/current_style.html#slices
     "E203","E401","E402","E501","F401"
 ]
+[tool.coverage.run]
+command_line = "tests/tests.py"
+relative_files = true
+[tool.coverage.html]
+directory = "tests/coverage_html_report"

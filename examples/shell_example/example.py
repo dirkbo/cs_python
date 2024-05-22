@@ -13,6 +13,7 @@ from dotenv import load_dotenv
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 parentdir = os.path.dirname(os.path.dirname(currentdir))
 sys.path.insert(0, parentdir)
+
 from helpers import (
     QuestionaryCryptshareSender,
     clean_expiration,
@@ -25,7 +26,7 @@ from transfer_status import transfer_status
 
 from cryptshare import CryptshareClient, CryptshareValidators
 
-logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 LOGGING_CONFIG_FILE = "examples/shell_example/logging_config.json"
 
 
@@ -77,7 +78,13 @@ def interactive_user_choice():
     mode = (
         questionary.select(
             "Do you want to send or receive files?",
-            choices=["Send", "Receive", "Status", "Exit"],
+            choices=[
+                questionary.Choice(title="Send a new Transfer", value="Send", shortcut_key="1"),
+                questionary.Choice(title="Download a Transfer", value="Receive", shortcut_key="2"),
+                questionary.Choice(title="Check the Status of a Transfer", value="Status", shortcut_key="3"),
+                questionary.Choice(title="Quit", value="Exit", shortcut_key="q"),
+            ],
+            use_shortcuts=True,
         )
         .ask()
         .lower()
@@ -150,15 +157,6 @@ def send_transfer_interactive(
     ).ask()
     if sender_phone == "":
         sender_phone = default_sender_phone
-    transfer_expiration = questionary.text(
-        "When should the transfer expire?\n",
-        default="5d",
-        validate=is_valid_expiration,
-    ).ask()
-    if transfer_expiration == "":
-        transfer_expiration = "2d"
-    transfer_expiration = clean_expiration(transfer_expiration)
-    print(f"Transfer expiration: {transfer_expiration}")
 
     transfer_password = questionary.password(
         "What is the password for the transfer? (blank=Password will be generated)\n"
@@ -169,22 +167,47 @@ def send_transfer_interactive(
     ).ask()
     if files == "":
         files = "examples/example_files/test_file.txt"
-    recipients = questionary.text(
-        "Which email addresses do you want to send to? (separate multiple addresses with a space)\n",
-        validate=is_valid_multiple_emails,
-    ).ask()
-    cc = questionary.text(
-        "Which email addresses do you want to cc? (separate multiple addresses with a space)\n",
-        validate=is_valid_multiple_emails,
-    ).ask()
-    bcc = questionary.text(
-        "Which email addresses do you want to bcc? (separate multiple addresses with a space)\n",
-        validate=is_valid_multiple_emails,
-    ).ask()
+
+    all_recipients = []
+    recipients = ""
+    cc = ""
+    bcc = ""
+    while len(all_recipients) == 0:
+        recipients = questionary.text(
+            "Which email addresses do you want to send to? (separate multiple addresses with a space)\n",
+            validate=is_valid_multiple_emails,
+        ).ask()
+        cc = questionary.text(
+            "Which email addresses do you want to cc? (separate multiple addresses with a space)\n",
+            validate=is_valid_multiple_emails,
+        ).ask()
+        bcc = questionary.text(
+            "Which email addresses do you want to bcc? (separate multiple addresses with a space)\n",
+            validate=is_valid_multiple_emails,
+        ).ask()
+        all_recipients = (
+            [recipient for recipient in recipients.split(" ") if recipient != ""]
+            + [cc_ for cc_ in cc.split(" ") if cc_ != ""]
+            + [bcc_ for bcc_ in bcc.split(" ") if bcc_ != ""]
+        )
+        logger.debug(f"{len(all_recipients)} Recipients: {all_recipients}")
+        if len(all_recipients) == 0:
+            print("Please provide at least one recipient, cc recipient or bcc recipient.")
+
     subject = questionary.text("What is the subject of the transfer? (blank=default Cryptshare subject)\n").ask()
     message = questionary.text(
         "What is the Notification message of the transfer? (blank=default Cryptshare Notification message)\n"
     ).ask()
+
+    transfer_expiration = questionary.text(
+        "When should the transfer expire?\n",
+        default="5d",
+        validate=is_valid_expiration,
+    ).ask()
+    if transfer_expiration == "":
+        transfer_expiration = "2d"
+    transfer_expiration = clean_expiration(transfer_expiration)
+    print(f"Transfer expiration: {transfer_expiration}")
 
     send_transfer(
         origin,

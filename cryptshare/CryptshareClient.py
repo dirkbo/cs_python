@@ -8,15 +8,15 @@ from datetime import datetime
 from cryptshare.CryptshareApiRequests import CryptshareApiRequests
 from cryptshare.CryptshareDownload import CryptshareDownload
 from cryptshare.CryptshareHeader import CryptshareHeader
+from cryptshare.CryptshareNotificationMessage import CryptshareNotificationMessage
 from cryptshare.CryptshareSender import CryptshareSender
 from cryptshare.CryptshareTransfer import CryptshareTransfer
 from cryptshare.CryptshareTransferSecurityMode import (
     CryptshareTransferSecurityMode,
-    SecurityMode,
+    SecurityModes,
 )
+from cryptshare.CryptshareTransferSettings import CryptshareTransferSettings
 from cryptshare.CryptshareValidators import CryptshareValidators
-from cryptshare.NotificationMessage import NotificationMessage
-from cryptshare.TransferSettings import TransferSettings
 
 logger = logging.getLogger(__name__)
 
@@ -164,7 +164,7 @@ class CryptshareClient(CryptshareApiRequests):
             return True
         return False
 
-    def start_transfer(self, recipients, settings: TransferSettings) -> CryptshareTransfer:
+    def start_transfer(self, recipients, settings: CryptshareTransferSettings) -> CryptshareTransfer:
         logger.debug(f"Starting transfer for {self.sender_email} to {recipients} with settings {settings}")
         transfer = CryptshareTransfer(
             settings,
@@ -174,7 +174,7 @@ class CryptshareClient(CryptshareApiRequests):
             cryptshare_client=self,
         )
         transfer.start_transfer_session()
-        transfer.edit_transfer_settings(settings)
+        transfer.update_transfer_settings(settings)
         return transfer
 
     def request_client_id(self):
@@ -311,14 +311,14 @@ class CryptshareClient(CryptshareApiRequests):
             transfer_status_list = []
             for list_transfer in all_transfers:
                 tracking_id = list_transfer["trackingId"]
-                transfer = CryptshareTransfer(TransferSettings(self._sender), tracking_id=tracking_id)
+                transfer = CryptshareTransfer(CryptshareTransferSettings(self._sender), tracking_id=tracking_id)
                 transfer = transfer.get_transfer_status(self)
                 status = {"trackingID": tracking_id, "status": transfer["status"]}
                 transfer_status_list.append(status)
             return transfer_status_list
 
         logger.debug(f"Transfer status for transfer {transfer_tracking_id}\n")
-        transfer = CryptshareTransfer(TransferSettings(self._sender), tracking_id=transfer_tracking_id)
+        transfer = CryptshareTransfer(CryptshareTransferSettings(self._sender), tracking_id=transfer_tracking_id)
         transfer_status = transfer.get_transfer_status(self)
         return transfer_status
 
@@ -335,6 +335,7 @@ class CryptshareClient(CryptshareApiRequests):
         sender_email: str = None,
         sender_name: str = "",
         sender_phone: str = "",
+        **kwargs,  # Additional Transfer settings, CryptshareTransferSettings documentation
     ) -> None:
         """Send a transfer using the Cryptshare server."""
 
@@ -360,7 +361,7 @@ class CryptshareClient(CryptshareApiRequests):
             self._sender = sender
 
         # ToDo: show password rules to user, when asking for password
-        transfer_security_mode = CryptshareTransferSecurityMode(password=transfer_password, mode=SecurityMode.MANUAL)
+        transfer_security_mode = CryptshareTransferSecurityMode(password=transfer_password, mode=SecurityModes.MANUAL)
         if transfer_password == "" or transfer_password is None:
             transfer_password = self.get_password().get("password")
             print(f"Generated Password to receive Files: {transfer_password}")
@@ -383,13 +384,17 @@ class CryptshareClient(CryptshareApiRequests):
 
         #  Transfer definition
         subject = subject if subject != "" else None
-        notification = NotificationMessage(message, subject)
-        settings = TransferSettings(
+        notification = CryptshareNotificationMessage(message, subject)
+        # ToDo: Make sure detected Language is available as Language Pack on the Cryptshare Server
+        settings = CryptshareTransferSettings(
             self._sender,
             notification_message=notification,
             send_download_notifications=True,
             security_mode=transfer_security_mode,
             expiration_date=expiration_date,
+            recipientLanguage=notification.language,
+            senderLanguage=self._sender.language,
+            **kwargs,
         )
 
         #  Start of transfer on server side
