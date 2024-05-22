@@ -11,11 +11,11 @@ parentdir = os.path.dirname(os.path.dirname(currentdir))
 sys.path.insert(0, parentdir)
 
 import cryptshare.CryptshareClient as CryptshareClient
-import cryptshare.NotificationMessage as NotificationMessage
-import cryptshare.TransferSettings as Settings
+import cryptshare.CryptshareNotificationMessage as NotificationMessage
+import cryptshare.CryptshareTransferSettings as Settings
 from cryptshare.CryptshareTransferSecurityMode import (
     CryptshareTransferSecurityMode,
-    SecurityMode,
+    SecurityModes,
 )
 
 # Please change these parameters accordingly to your setup
@@ -277,12 +277,15 @@ def main():
     # policy_response = cryptshare_client.get_policy(["python@domain.com"])
     #  Transfer definition
     sender = cryptshare_client.sender
-    settings = Settings.TransferSettings(
+    message = NotificationMessage.CryptshareNotificationMessage("test", "Test the REST")
+    settings = Settings.CryptshareTransferSettings(
         sender,
         expiration_date,
-        NotificationMessage.NotificationMessage("test", "Test the REST"),
+        message,
         send_download_notifications=True,
         security_mode=CryptshareTransferSecurityMode(password=transfer_password),
+        senderLanguage=sender.language,
+        recipientLanguage=message.language,
     )
 
     #  Start of transfer on server side

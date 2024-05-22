@@ -4,18 +4,18 @@ from enum import Enum, auto
 logger = logging.getLogger(__name__)
 
 
-class SecurityMode(Enum):
+class SecurityModes(Enum):
     NONE = (auto(),)
     GENERATED = (auto(),)
     MANUAL = auto()
 
 
 class CryptshareTransferSecurityMode:
-    _passwordMode: SecurityMode = SecurityMode.GENERATED
+    _passwordMode: SecurityModes = SecurityModes.GENERATED
     _password: str = ""
     name: str = "ONE_TIME_PASSWORD"
 
-    def __init__(self, password: str = "", mode: SecurityMode = SecurityMode.GENERATED):
+    def __init__(self, password: str = "", mode: SecurityModes = SecurityModes.GENERATED):
         logger.debug("Initialising SecurityMode")
         self._password = password
         self._passwordMode = mode
@@ -23,16 +23,16 @@ class CryptshareTransferSecurityMode:
     def data(self):
         logger.debug("Returning SecurityMode data")
         config = {}
-        if self._passwordMode == SecurityMode.NONE:
+        if self._passwordMode == SecurityModes.NONE:
             logger.debug("Setting SecurityMode to NONE")
             config = {"passwordMode": "NONE"}
-        elif self._passwordMode == SecurityMode.GENERATED and self._password == "":
+        elif self._passwordMode == SecurityModes.GENERATED and self._password == "":
             logger.debug("Setting SecurityMode to GENERATED")
             config = {"passwordMode": "GENERATED"}
-        elif self._passwordMode == SecurityMode.GENERATED:
+        elif self._passwordMode == SecurityModes.GENERATED:
             logger.debug("Setting SecurityMode to GENERATED with password")
             config = {"passwordMode": "GENERATED", "password": self._password}
-        elif self._passwordMode == SecurityMode.MANUAL:
+        elif self._passwordMode == SecurityModes.MANUAL:
             logger.debug("Setting SecurityMode to MANUAL with password")
             config = {"passwordMode": "MANUAL", "password": self._password}
         return {"name": self.name, "config": config}

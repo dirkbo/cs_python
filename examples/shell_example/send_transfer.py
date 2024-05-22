@@ -12,13 +12,13 @@ from tqdm import tqdm
 from tqdm.utils import CallbackIOWrapper
 
 from cryptshare import CryptshareClient
+from cryptshare.CryptshareNotificationMessage import CryptshareNotificationMessage
 from cryptshare.CryptshareTransfer import CryptshareTransfer, TransferFile
 from cryptshare.CryptshareTransferSecurityMode import (
     CryptshareTransferSecurityMode,
-    SecurityMode,
+    SecurityModes,
 )
-from cryptshare.NotificationMessage import NotificationMessage
-from cryptshare.TransferSettings import TransferSettings
+from cryptshare.CryptshareTransferSettings import CryptshareTransferSettings
 
 logger = logging.getLogger(__name__)
 
@@ -134,7 +134,7 @@ def send_transfer(
             show_generated_pasword = True
 
     # ToDo: show password rules to user, when asking for password
-    transfer_security_mode = CryptshareTransferSecurityMode(password=transfer_password, mode=SecurityMode.MANUAL)
+    transfer_security_mode = CryptshareTransferSecurityMode(password=transfer_password, mode=SecurityModes.MANUAL)
     if transfer_password == "" or transfer_password is None:
         transfer_password = cryptshare_client.get_password().get("password")
         if not show_generated_pasword:
@@ -165,13 +165,15 @@ def send_transfer(
         return
 
     #  Transfer definition
-    notification = NotificationMessage(message, subject)
-    settings = TransferSettings(
+    notification = CryptshareNotificationMessage(message, subject)
+    settings = CryptshareTransferSettings(
         sender,
         notification_message=notification,
         send_download_notifications=True,
         security_mode=transfer_security_mode,
         expiration_date=expiration_date,
+        senderLanguage=sender.language,
+        recipientLanguage=notification.language,
     )
     print(f" Expiration Date: {settings.expiration_date}")
 
@@ -185,7 +187,7 @@ def send_transfer(
     )
 
     transfer.start_transfer_session()
-    transfer.edit_transfer_settings()
+    transfer.update_transfer_settings()
     print("Uploading files to transfer...")
     for file in files:
         transfer.upload_file(file)

@@ -1,5 +1,6 @@
 import logging
 import re
+from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
@@ -44,7 +45,7 @@ class CryptshareValidators:
             logger.debug("Invalid Cryptshare Server: Server is blank, ")
             return False
         # Make a regular expression for validating a URL
-        regex = r"(http|https)://[a-zA-Z0-9.-]+\.[a-zA-Z]{2,7}"
+        regex = r"(http|https)://[a-zA-Z0-9.-]+\.[a-zA-Z]{2,7}(:\d{1,5})?"
 
         if re.fullmatch(regex, server):
             logger.debug(f"Valid Cryptshare Server: {server}")
@@ -61,13 +62,30 @@ class CryptshareValidators:
         if tracking_id is None or tracking_id == "":
             logger.debug("Valid Tracking ID: Tracking ID is blank")
             return True
+
         # Regular expression for validating a tracking id
         regex = r"[0-9]{8}-[0-9]{6}-.{8}"
-        if re.fullmatch(regex, tracking_id):
+        if not re.fullmatch(regex, tracking_id):
             logger.debug(f"Valid Tracking ID: {tracking_id}")
-            return True
-        logger.debug(f"Invalid Tracking ID: {tracking_id}")
-        return False
+            return False
+
+        # First parts of the tracking ID has to be a valid datetime
+        try:
+            part1 = tracking_id.split("-")[0]
+            part2 = tracking_id.split("-")[1]
+        except IndexError:
+            logger.debug(f"Invalid Tracking ID: {tracking_id}")
+            return False
+
+        tracking_id_timestamp = f"{part1}-{part2}"
+        try:
+            datetime.strptime(tracking_id_timestamp, "%Y%m%d-%H%M%S")
+        except ValueError:
+            logger.debug(f"Invalid Tracking ID: {tracking_id}")
+            return False
+
+        logger.debug(f"Valid Tracking ID: {tracking_id}")
+        return True
 
     @staticmethod
     def is_valid_tracking_id(tracking_id: str):
