@@ -241,7 +241,7 @@ def display_transfer_information(transfer_settings):
 
 def main():
     #  Set server URL
-    cryptshare_client = CryptshareClient.CryptshareClient(cryptshare_server_url, ssl_verify=False)
+    cryptshare_client = CryptshareClient(cryptshare_server_url, ssl_verify=False)
 
     #  Reads existing verifications from the 'store' file if any
     cryptshare_client.read_client_store()
@@ -304,9 +304,6 @@ def main():
         transfer.send_transfer()
     post_transfer_info = transfer.get_transfer_status()
     cryptshare_client.write_client_store()
-
-    #  Create a Download object to perform downloads on.
-    cryptshare_client.download_transfer("pq7KbAIvL9", "Hb$uciWr")
 
     print(pre_transfer_info)
     print(post_transfer_info)
