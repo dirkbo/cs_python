@@ -26,6 +26,7 @@ extend-ignore = [
 ]
 [tool.coverage.run]
 command_line = "tests/tests.py"
+omit = ["*tests*"]
 relative_files = true
 [tool.coverage.html]
 directory = "tests/coverage_html_report"
