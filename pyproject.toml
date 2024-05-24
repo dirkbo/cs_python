@@ -25,7 +25,9 @@ extend-ignore = [
     "E203","E401","E402","E501","F401"
 ]
 [tool.coverage.run]
-command_line = "tests/tests.py"
+branch = true
+source = ["."]
+command_line = "-m unittest discover -s tests"
 omit = ["*tests*"]
 relative_files = true
 [tool.coverage.html]

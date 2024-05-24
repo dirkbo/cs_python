@@ -1,5 +1,8 @@
 import datetime
 import inspect
+import json
+import logging
+import logging.config
 import os
 import sys
 
@@ -11,10 +14,13 @@ currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentfram
 parentdir = os.path.dirname(os.path.dirname(currentdir))
 sys.path.insert(0, parentdir)
 
-import cryptshare.CryptshareClient as CryptshareClient
-import cryptshare.CryptshareNotificationMessage as NotificationMessage
-import cryptshare.CryptshareTransferSettings as Settings
+from cryptshare.CryptshareClient import CryptshareClient
+from cryptshare.CryptshareNotificationMessage import CryptshareNotificationMessage as NotificationMessage
+from cryptshare.CryptshareTransferSettings import CryptshareTransferSettings
 from cryptshare.CryptshareTransferSecurityMode import CryptshareTransferSecurityMode
+
+logger = logging.getLogger(__name__)
+LOGGING_CONFIG_FILE = "examples/gui_example/logging_config.json"
 
 # Please change these parameters accordingly to your setup
 cryptshare_server_url = os.getenv("CRYPTSHARE_SERVER", "https://beta.cryptshare.com")
@@ -237,9 +243,16 @@ def display_transfer_information(transfer_settings):
             return True
 
 
+def setup_logging():
+    with open(LOGGING_CONFIG_FILE, "r") as f:
+        config = json.load(f)
+        logging.config.dictConfig(config)
+
+
 def main():
+    setup_logging()
     #  Set server URL
-    cryptshare_client = CryptshareClient(server=cryptshare_server_url, ssl_verify=False)
+    cryptshare_client = CryptshareClient(server=cryptshare_server_url)
 
     #  Reads existing verifications from the 'store' file if any
     cryptshare_client.read_client_store()
@@ -276,8 +289,8 @@ def main():
     #  Transfer definition
     expiration_date = date_parser.parse(expiration_date)
     sender = cryptshare_client.sender
-    message = NotificationMessage.CryptshareNotificationMessage("test", "Test the REST")
-    settings = Settings.CryptshareTransferSettings(
+    message = NotificationMessage("test", "Test the REST")
+    settings = CryptshareTransferSettings(
         sender,
         expiration_date,
         message,
@@ -308,4 +321,5 @@ def main():
     print(post_transfer_info)
 
 
-main()
+if __name__ == "__main__":
+    main()
