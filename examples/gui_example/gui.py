@@ -245,13 +245,13 @@ def display_transfer_information(transfer_settings):
             return True
 
 
-def setup_logging():
+def setup_logging() -> None:
     with open(LOGGING_CONFIG_FILE, "r") as f:
         config = json.load(f)
         logging.config.dictConfig(config)
 
 
-def main():
+def main() -> None:
     setup_logging()
     #  Set server URL
     cryptshare_client = CryptshareClient(server=cryptshare_server_url)

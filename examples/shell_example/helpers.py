@@ -9,19 +9,134 @@ from tqdm import tqdm
 from tqdm.utils import CallbackIOWrapper
 
 from cryptshare import CryptshareClient, CryptshareSender
+from cryptshare.CryptshareDownload import CryptshareDownload
 from cryptshare.CryptshareTransfer import CryptshareTransfer, TransferFile
 from cryptshare.CryptshareValidators import CryptshareValidators
 
 logger = logging.getLogger(__name__)
 
 
+class ExtendedCryptshareValidators(CryptshareValidators):
+    """Cryptshare Validators class extended to validate and clean userdata."""
+
+    @staticmethod
+    def clean_expiration(date_string_value: [str, datetime], default_days=2) -> datetime:
+        """
+        This function is used to clean and standardize the expiration date values.
+
+        :param date_string_value: The input date value as a string. It can be in various formats.
+        :param default_days: The default number of days to add to the current date if the input date value is empty.
+        :return: The cleaned date value as a datetime object.
+
+        The function handles various formats of expiration dates and also relative expiration dates like "tomorrow", "2d" (2 days), "3w" (3 weeks), "4m" (4 months).
+        """
+
+        now = datetime.now()
+        date_value = None
+
+        # Handle empty expiration dates
+        if date_string_value is None or date_string_value == "":
+            return now + timedelta(days=default_days)  # "2028-10-09T11:51:46+02:00"
+
+        # Handle datetime objects by returning them directly
+        if type(date_string_value) is datetime:
+            return date_string_value
+
+        # Handle relative expiration dates
+        if date_string_value == "tomorrow":
+            return now + timedelta(days=1)
+
+        if date_string_value.endswith("d"):
+            days = int(date_string_value[:-1])
+            return now + timedelta(days=days)
+
+        if date_string_value.endswith("w"):
+            weeks = int(date_string_value[:-1])
+            return now + timedelta(weeks=weeks)
+
+        if date_string_value.endswith("m"):
+            months = int(date_string_value[:-1])
+            return now + timedelta(weeks=months * 4)
+
+        # Handle various formats of expiration dates
+        try:
+            date_value = date_parser.parse(date_string_value)
+        except ValueError:
+            pass
+        else:
+            return date_value
+
+        raise ValueError(f"Invalid expiration date: {date_string_value}")
+
+    @staticmethod
+    def is_valid_expiration(date_string_value: [str, datetime]) -> bool:
+        if date_string_value is None or date_string_value == "":
+            return False
+        try:
+            ExtendedCryptshareValidators.clean_expiration(date_string_value)
+        except ValueError:
+            return False
+        return True
+
+    @staticmethod
+    def is_valid_multiple_emails(email_list: str) -> bool:
+        if email_list is None or email_list == "":
+            return True
+        emails = email_list.split(" ")
+        for email in emails:
+            if not ExtendedCryptshareValidators.is_valid_email(email):
+                return False
+        return True
+
+    @staticmethod
+    def clean_string_list(string_list: [list, str]) -> list[str]:
+        """
+        This function is used to clean and standardize the input string list.
+
+        :param string_list: The input string list. It can be a list or a string seperated by spaces.
+        :return: The cleaned string list as a list of strings.
+
+        The function handles various formats of string lists and also removes duplicates.
+        """
+
+        if string_list is None or string_list == "":
+            return []
+
+        if type(string_list) is str:
+            string_list = string_list.split(" ")
+        else:
+            try:
+                string_list = [str(item) for item in string_list]
+            except TypeError:
+                return list()
+
+        if type(string_list) is not list[str]:
+            string_list = list(string_list)
+
+        # remove duplicates
+        string_list = list(dict.fromkeys(string_list))
+        return string_list
+
+    @staticmethod
+    def twilio_sms_is_configured() -> bool:
+        account_sid = os.getenv("TWILIO_ACCOUNT_SID", None)
+        auth_token = os.getenv("TWILIO_AUTH_TOKEN", None)
+        sender_phone = os.getenv("TWILIO_SENDER_PHONE", None)
+
+        if account_sid is None or auth_token is None or sender_phone is None:
+            logger.debug("Twilio SMS is not configured.")
+            return False
+        logger.debug("Twilio SMS is configured.")
+        return True
+
+
 def questionary_ask_for_sender(default_sender_email: str, default_sender_name: str, default_sender_phone: str) -> tuple:
-    if default_sender_email is None or not CryptshareValidators.is_valid_email_or_blank(default_sender_email):
+    if default_sender_email is None or not ExtendedCryptshareValidators.is_valid_email_or_blank(default_sender_email):
         default_sender_email = ""
     sender_email = questionary.text(
         "From which email do you want to send transfers?\n",
         default=default_sender_email,
-        validate=CryptshareValidators.is_valid_email,
+        validate=ExtendedCryptshareValidators.is_valid_email,
     ).ask()
     if sender_email == "":
         sender_email = default_sender_email
@@ -66,11 +181,8 @@ class TqdmFile(TransferFile):
     """File class with tqdm progress bar for file upload"""
 
     def calculate_checksum(self):
-        logger.debug("Calculating checksum")  # Calculate file hashsum
-        with open(self.path, "rb") as data:
-            file_content = data.read()
-            self.checksum = hashlib.sha256(file_content).hexdigest()
-            print(f"Checksum for {self.name}: {self.checksum}")
+        super(TqdmFile, self).calculate_checksum()
+        print(f"Checksum for {self.name}: {self.checksum}")
 
     def upload_file_content(self):
         upload_url = f"{self.transfer_session_url}/files/{self._file_id}/content"
@@ -88,6 +200,47 @@ class TqdmFile(TransferFile):
                     handle_response=False,
                 )
         return True
+
+
+class TqdmCryptshareDownload(CryptshareDownload):
+    """A class to download files from a Cryptshare server with a progress bar."""
+
+    def download_file(self, url: str, filename: str, directory: str, size: int = None) -> None:
+        """Download a file from an URL to the given directory"""
+        response = self._request(
+            "GET",
+            url,
+            stream=True,
+            verify=self._cryptshare_client.ssl_verify,
+            headers=self._cryptshare_client.header.request_header,
+        )
+        full_path = os.path.join(directory, filename)
+        os.makedirs(directory, exist_ok=True)
+        with open(full_path, "wb") as handle:
+            for data in tqdm(
+                response.iter_content(),
+                desc=filename,
+                unit="B",
+                unit_scale=True,
+                unit_divisor=1024,
+                total=size,
+            ):
+                handle.write(data)
+
+    def download_transfer_file(self, file, directory) -> None:
+        response = self._request("GET", self.server + file["href"], stream=True)
+        full_path = os.path.join(directory, file["fileName"])
+        os.makedirs(directory, exist_ok=True)
+        with open(full_path, "wb") as handle:
+            for data in tqdm(
+                response.iter_content(),
+                desc=file["fileName"],
+                unit="B",
+                unit_scale=True,
+                unit_divisor=1024,
+                total=int(file["size"]),
+            ):
+                handle.write(data)
 
 
 class TqdmTransfer(CryptshareTransfer):
@@ -109,121 +262,11 @@ class TqdmTransfer(CryptshareTransfer):
         return file
 
 
-def clean_expiration(date_string_value: [str, datetime], default_days=2) -> datetime:
-    """
-    This function is used to clean and standardize the expiration date values.
-
-    :param date_string_value: The input date value as a string. It can be in various formats.
-    :param default_days: The default number of days to add to the current date if the input date value is empty.
-    :return: The cleaned date value as a datetime object.
-
-    The function handles various formats of expiration dates and also relative expiration dates like "tomorrow", "2d" (2 days), "3w" (3 weeks), "4m" (4 months).
-    """
-
-    now = datetime.now()
-    date_value = None
-
-    # Handle empty expiration dates
-    if date_string_value is None or date_string_value == "":
-        return now + timedelta(days=default_days)  # "2028-10-09T11:51:46+02:00"
-
-    # Handle datetime objects by returning them directly
-    if type(date_string_value) is datetime:
-        return date_string_value
-
-    # Handle relative expiration dates
-    if date_string_value == "tomorrow":
-        return now + timedelta(days=1)
-
-    if date_string_value.endswith("d"):
-        days = int(date_string_value[:-1])
-        return now + timedelta(days=days)
-
-    if date_string_value.endswith("w"):
-        weeks = int(date_string_value[:-1])
-        return now + timedelta(weeks=weeks)
-
-    if date_string_value.endswith("m"):
-        months = int(date_string_value[:-1])
-        return now + timedelta(weeks=months * 4)
-
-    # Handle various formats of expiration dates
-    try:
-        date_value = date_parser.parse(date_string_value)
-    except ValueError:
-        pass
-    else:
-        return date_value
-
-    raise ValueError(f"Invalid expiration date: {date_string_value}")
-
-
-def is_valid_expiration(date_string_value: str) -> bool:
-    if date_string_value is None or date_string_value == "":
-        return False
-    try:
-        clean_expiration(date_string_value)
-    except ValueError:
-        return False
-    return True
-
-
-def is_valid_multiple_emails(email_list: str) -> bool:
-    if email_list is None or email_list == "":
-        return True
-    emails = email_list.split(" ")
-    for email in emails:
-        if not CryptshareValidators.is_valid_email(email):
-            return False
-    return True
-
-
-def clean_string_list(string_list: [list, str]) -> list[str]:
-    """
-    This function is used to clean and standardize the input string list.
-
-    :param string_list: The input string list. It can be a list or a string seperated by spaces.
-    :return: The cleaned string list as a list of strings.
-
-    The function handles various formats of string lists and also removes duplicates.
-    """
-
-    if string_list is None or string_list == "":
-        return []
-
-    if type(string_list) is str:
-        string_list = string_list.split(" ")
-    else:
-        try:
-            string_list = [str(item) for item in string_list]
-        except TypeError:
-            return list()
-
-    if type(string_list) is not list[str]:
-        string_list = list(string_list)
-
-    # remove duplicates
-    string_list = list(dict.fromkeys(string_list))
-    return string_list
-
-
-def twilio_sms_is_configured() -> bool:
-    account_sid = os.getenv("TWILIO_ACCOUNT_SID", None)
-    auth_token = os.getenv("TWILIO_AUTH_TOKEN", None)
-    sender_phone = os.getenv("TWILIO_SENDER_PHONE", None)
-
-    if account_sid is None or auth_token is None or sender_phone is None:
-        logger.debug("Twilio SMS is not configured.")
-        return False
-    logger.debug("Twilio SMS is configured.")
-    return True
-
-
 def send_password_with_twilio(tracking_id: str, password: str, recipient_sms: str, recipient_email: str = None) -> None:
     # Find these values at https://twilio.com/user/account
     # To set up environmental variables, see http://twil.io/secure
 
-    if not twilio_sms_is_configured():
+    if not ExtendedCryptshareValidators.twilio_sms_is_configured():
         logger.info(f"Twilio SMS is not configured. SMS not sent to {recipient_sms}.")
         return
 

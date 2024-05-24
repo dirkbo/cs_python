@@ -6,8 +6,10 @@ logger = logging.getLogger(__name__)
 
 
 class CryptshareValidators:
+    """Collection of validators for cryptshare related data."""
+
     @staticmethod
-    def is_valid_email_or_blank(email):
+    def is_valid_email_or_blank(email: str) -> bool:
         """Checks if the email is valid or blank
         :param email: The email to validate
         :return: True if the email is valid or blank, False otherwise
@@ -31,7 +33,7 @@ class CryptshareValidators:
         return False
 
     @staticmethod
-    def is_valid_email(email):
+    def is_valid_email(email: str) -> bool:
         """Checks if the email is valid
         :param email: The email to validate
         :return: True if the email is valid, False otherwise
@@ -42,7 +44,7 @@ class CryptshareValidators:
         return CryptshareValidators.is_valid_email_or_blank(email)
 
     @staticmethod
-    def is_valid_server_url(server):
+    def is_valid_server_url(server: str) -> bool:
         """Checks if the server is valid
         :param server: The server to validate
         :return: True if the server is valid, False otherwise
@@ -60,7 +62,7 @@ class CryptshareValidators:
         return False
 
     @staticmethod
-    def is_valid_tracking_id_or_blank(tracking_id: str):
+    def is_valid_tracking_id_or_blank(tracking_id: str) -> bool:
         """Checks if the tracking id is valid or blank
         :param tracking_id: The tracking id to validate
         :return: True if the tracking id is valid, False otherwise
@@ -90,7 +92,7 @@ class CryptshareValidators:
         return True
 
     @staticmethod
-    def is_valid_tracking_id(tracking_id: str):
+    def is_valid_tracking_id(tracking_id: str) -> bool:
         """Checks if the tracking id is valid
         :param tracking_id: The tracking id to validate
         :return: True if the tracking id is valid, False otherwise
@@ -101,7 +103,7 @@ class CryptshareValidators:
         return CryptshareValidators.is_valid_tracking_id_or_blank(tracking_id)
 
     @staticmethod
-    def is_valid_transfer_id(transfer_id: str):
+    def is_valid_transfer_id(transfer_id: str) -> bool:
         """Checks if the transfer id is valid
         :param transfer_id: The transfer id to validate
         :return: True if the transfer id is valid, False otherwise
@@ -118,7 +120,7 @@ class CryptshareValidators:
         return False
 
     @staticmethod
-    def is_valid_verification_code(verification_code: str):
+    def is_valid_verification_code(verification_code: str) -> bool:
         """Checks if the verification code is valid
         :param verification_code: The verification code to validate
         :return: True if the verification code is valid, False otherwise

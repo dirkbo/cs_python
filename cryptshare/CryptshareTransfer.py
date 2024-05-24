@@ -235,8 +235,7 @@ class CryptshareTransfer(CryptshareApiRequests):
         file.delete_upload()
         self.files.remove(file)
 
-    def __del__(self):
-        logger.debug("Deleting Cryptshare Transfer object")
+    def delete_transfer_session(self):
         if self._session_is_open:
             path = self.get_transfer_session_url()
             logger.debug(f"Deleting transfer session DELETE {path}")
@@ -246,6 +245,10 @@ class CryptshareTransfer(CryptshareApiRequests):
                 verify=self._cryptshare_client.ssl_verify,
                 headers=self._cryptshare_client.header.request_header,
             )
+
+    def __del__(self):
+        logger.debug("Deleting Cryptshare Transfer object")
+        self.delete_transfer_session()
 
     def get_recipients(self) -> dict:
         logger.debug("Getting recipients data")

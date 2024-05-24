@@ -2,11 +2,10 @@ import itertools
 import logging
 
 from helpers import (
+    ExtendedCryptshareValidators,
     QuestionaryCryptshareSender,
     TqdmTransfer,
-    clean_string_list,
     send_password_with_twilio,
-    twilio_sms_is_configured,
 )
 
 from cryptshare import CryptshareClient
@@ -40,10 +39,10 @@ def send_transfer(
     if cryptshare_client is None:
         cryptshare_client = CryptshareClient(send_server)
 
-    files = clean_string_list(files)
-    recipients = clean_string_list(recipients)
-    cc = clean_string_list(cc)
-    bcc = clean_string_list(bcc)
+    files = ExtendedCryptshareValidators.clean_string_list(files)
+    recipients = ExtendedCryptshareValidators.clean_string_list(recipients)
+    cc = ExtendedCryptshareValidators.clean_string_list(cc)
+    bcc = ExtendedCryptshareValidators.clean_string_list(bcc)
 
     transformed_recipients = [{"mail": recipient} for recipient in recipients]
     transformed_cc_recipients = [{"mail": recipient} for recipient in cc]
@@ -74,7 +73,7 @@ def send_transfer(
     sender.setup_and_verify_sender(cryptshare_client)
 
     send_password_sms = False
-    if twilio_sms_is_configured() and recipient_sms_phones is not None:
+    if ExtendedCryptshareValidators.twilio_sms_is_configured() and recipient_sms_phones is not None:
         send_password_sms = True
 
     show_generated_pasword = not send_password_sms

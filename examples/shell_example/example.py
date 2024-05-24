@@ -14,25 +14,27 @@ currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentfram
 parentdir = os.path.dirname(os.path.dirname(currentdir))
 sys.path.insert(0, parentdir)
 
-from helpers import QuestionaryCryptshareSender, clean_expiration
+from helpers import ExtendedCryptshareValidators
 from receive_transfer import receive_transfer
+from receive_transfer_interactive import receive_transfer_interactive
 from send_transfer import send_transfer
 from send_transfer_interactive import send_transfer_interactive
+from status_transfer_interactive import status_transfer_interactive
 from transfer_status import transfer_status
 
-from cryptshare import CryptshareClient, CryptshareValidators
+from cryptshare import CryptshareClient
 
 logger = logging.getLogger(__name__)
 LOGGING_CONFIG_FILE = "examples/shell_example/logging_config.json"
 
 
-def setup_logging():
+def setup_logging() -> None:
     with open(LOGGING_CONFIG_FILE, "r") as f:
         config = json.load(f)
         logging.config.dictConfig(config)
 
 
-def parse_args():
+def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Send and receive files using Cryptshare.")
     requires_sender = os.getenv("CRYPTSHARE_SENDER_EMAIL", None) is None
     requires_server = os.getenv("CRYPTSHARE_SERVER", None) is None
@@ -47,6 +49,12 @@ def parse_args():
     # Receive a Transfer
     parser.add_argument("-t", "--transfer", help="Transfer ID of the Transfer to RECEIVE", required=False)
     parser.add_argument("-p", "--password", help="Password of the Transfer to RECEIVE", required=False)
+    parser.add_argument(
+        "--zip", action="store_true", default=False, help="RECEIVE the Transfer as a .zip-File.", required=False
+    )
+    parser.add_argument(
+        "--eml", action="store_true", default=False, help="RECEIVE the Transfer as a .eml-File.", required=False
+    )
     # Send a Transfer
     parser.add_argument(
         "-e",
@@ -90,66 +98,7 @@ def interactive_user_choice():
     return mode
 
 
-def transfer_status_interactive(default_server_url, default_sender_email):
-    send_server = questionary.text(
-        "Which server do you want to use to check a Transfer status?\n",
-        default=default_server_url,
-        validate=CryptshareValidators.is_valid_server_url,
-    ).ask()
-    if send_server == "":
-        send_server = default_server_url
-    print(f"Checking transfer status using {send_server}")
-    client = CryptshareClient(default_server_url)
-
-    if default_sender_email is None or not CryptshareValidators.is_valid_email_or_blank(default_sender_email):
-        default_sender_email = ""
-    sender_email = questionary.text(
-        "For which email do you want to check transfer status?\n",
-        default=default_sender_email,
-        validate=CryptshareValidators.is_valid_email_or_blank,
-    ).ask()
-    if sender_email == "":
-        sender_email = default_sender_email
-    transfer_transfer_id = questionary.text(
-        "Which transfer ID do you want to check the status of? (blank=all)\n",
-        validate=CryptshareValidators.is_valid_tracking_id_or_blank,
-    ).ask()
-
-    sender = QuestionaryCryptshareSender(email=sender_email, name="REST-API Sender", phone="0")
-    sender.setup_and_verify_sender(client)
-    transfer_status(client, transfer_transfer_id)
-
-
-def download_transfer_interactive(default_server_url, origin):
-    dl_server = questionary.text(
-        "From which server do you want to download a Transfer?",
-        default=default_server_url,
-        validate=CryptshareValidators.is_valid_server_url,
-    ).ask()
-    if dl_server == "":
-        dl_server = default_server_url
-    print(f"Downloading from {dl_server}")
-
-    recipient_transfer_id = questionary.text(
-        f"Which transfer ID did you receive from {default_server_url}?\n",
-        default="",
-        validate=CryptshareValidators.is_valid_transfer_id,
-    ).ask()
-    password = questionary.password(f"What is the PASSWORD for transfer {recipient_transfer_id}?\n").ask()
-
-    default_path = recipient_transfer_id
-    save_path = default_path
-    user_path = questionary.path(
-        "Where do you want to save the downloaded files?",
-        default=default_path,
-        only_directories=True,
-    ).ask()
-    if user_path != "":
-        save_path = user_path
-    receive_transfer(dl_server, recipient_transfer_id, password, save_path)
-
-
-def main():
+def main() -> None:
     load_dotenv()
 
     setup_logging()
@@ -165,7 +114,7 @@ def main():
 
     if inputs.mode == "send":
         new_transfer_password = inputs.password
-        transfer_expiration = clean_expiration(inputs.expiration)
+        transfer_expiration = ExtendedCryptshareValidators.clean_expiration(inputs.expiration)
         send_transfer(
             origin,
             default_server_url,
@@ -187,7 +136,14 @@ def main():
         recipient_transfer_id = inputs.transfer
         password = inputs.password
         save_path = recipient_transfer_id
-        receive_transfer(default_server_url, recipient_transfer_id, password, save_path)
+        receive_transfer(
+            default_server_url,
+            recipient_transfer_id,
+            password,
+            save_path,
+            download_zip=inputs.zip,
+            download_eml=inputs.eml,
+        )
         return
     elif inputs.mode == "status":
         client = CryptshareClient(default_server_url)
@@ -201,9 +157,9 @@ def main():
                 default_server_url, default_sender_email, default_sender_name, default_sender_phone, origin
             )
         elif mode == "receive":
-            download_transfer_interactive(default_server_url, origin)
+            receive_transfer_interactive(default_server_url)
         elif mode == "status":
-            transfer_status_interactive(default_server_url, default_sender_email, origin)
+            status_transfer_interactive(default_server_url, default_sender_email)
         if mode is False:
             break
 
