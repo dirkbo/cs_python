@@ -4,23 +4,20 @@ import os
 import sys
 
 import PySimpleGUI as sg
-
-import cryptshare.CryptshareClient as CryptshareClient
-import cryptshare.CryptshareNotificationMessage as NotificationMessage
-import cryptshare.CryptshareTransferSettings as Settings
-from cryptshare.CryptshareTransferSecurityMode import (
-    CryptshareTransferSecurityMode,
-    SecurityModes,
-)
+from dateutil import parser as date_parser
 
 # To work from exapmples folder, parentfolder is added to path
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 parentdir = os.path.dirname(os.path.dirname(currentdir))
 sys.path.insert(0, parentdir)
 
+import cryptshare.CryptshareClient as CryptshareClient
+import cryptshare.CryptshareNotificationMessage as NotificationMessage
+import cryptshare.CryptshareTransferSettings as Settings
+from cryptshare.CryptshareTransferSecurityMode import CryptshareTransferSecurityMode
 
 # Please change these parameters accordingly to your setup
-cryptshare_server_url = os.getenv("CRYPTSHARE_SERVER_URL", "https://beta.cryptshare.com")
+cryptshare_server_url = os.getenv("CRYPTSHARE_SERVER", "https://beta.cryptshare.com")
 transfer_password = "Thunderstruck!"
 origin = os.getenv("CRYPTSHARE_CORS_ORIGIN", "https://localhost")
 
@@ -277,6 +274,7 @@ def main():
     # passwort_validated_response = cryptshare_client.validate_password("happyday123asd")
     # policy_response = cryptshare_client.get_policy(["python@domain.com"])
     #  Transfer definition
+    expiration_date = date_parser.parse(expiration_date)
     sender = cryptshare_client.sender
     message = NotificationMessage.CryptshareNotificationMessage("test", "Test the REST")
     settings = Settings.CryptshareTransferSettings(
