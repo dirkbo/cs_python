@@ -15,23 +15,27 @@ sys.path.insert(0, parentdir)
 
 from helpers import (
     QuestionaryCryptshareSender,
-    questionary_ask_for_sender,
     clean_expiration,
+    clean_string_list,
     is_valid_expiration,
-    is_valid_multiple_emails, clean_string_list,
+    is_valid_multiple_emails,
+    questionary_ask_for_sender,
 )
 from send_transfer import TqdmTransfer
 
 from cryptshare import CryptshareClient, CryptshareValidators
 from cryptshare.CryptshareNotificationMessage import CryptshareNotificationMessage
-from cryptshare.CryptshareTransferSecurityMode import CryptshareTransferSecurityMode, SecurityModes
+from cryptshare.CryptshareTransferSecurityMode import (
+    CryptshareTransferSecurityMode,
+    SecurityModes,
+)
 from cryptshare.CryptshareTransferSettings import CryptshareTransferSettings
 
 logger = logging.getLogger(__name__)
 
 
 def send_transfer_interactive(
-        default_server_url, default_sender_email, default_sender_name, default_sender_phone, origin
+    default_server_url, default_sender_email, default_sender_name, default_sender_phone, origin
 ):
     send_server = questionary.text(
         "Which server do you want to use to send a Transfer?\n",
@@ -45,9 +49,7 @@ def send_transfer_interactive(
     print(f"Sending transfer using {send_server}")
 
     sender_email, sender_name, sender_phone = questionary_ask_for_sender(
-        default_sender_email,
-        default_sender_name,
-        default_sender_phone
+        default_sender_email, default_sender_name, default_sender_phone
     )
 
     #  request client id from server if no client id exists
@@ -88,17 +90,18 @@ def send_transfer_interactive(
                 questionary.Choice(title="Abort", value="Abort", shortcut_key="q"),
             ],
             use_shortcuts=True,
-            ).ask()
+        ).ask()
         if recipient_selection == "Remove":
             select_remove = True
             while select_remove:
-                remove_choices = [questionary.Choice(title=f"{recipient}", value=recipient) for recipient in all_recipients] + [
-                    questionary.Choice(title="Back", value="Back", shortcut_key="b")
-                    ]
-                select_remove_choice = questionary.select("Which recipient do you want to remove?",
-                                                          choices=remove_choices,
-                                                          use_shortcuts=True,
-                                                          ).ask()
+                remove_choices = [
+                    questionary.Choice(title=f"{recipient}", value=recipient) for recipient in all_recipients
+                ] + [questionary.Choice(title="Back", value="Back", shortcut_key="b")]
+                select_remove_choice = questionary.select(
+                    "Which recipient do you want to remove?",
+                    choices=remove_choices,
+                    use_shortcuts=True,
+                ).ask()
                 if select_remove_choice == "Back":
                     select_remove = False
                     new_cc_list = cc_list
@@ -253,8 +256,13 @@ def send_transfer_interactive(
                 questionary.Choice(title="Add a file", value="AddFile"),
                 questionary.Choice(title="Remove a file", value="RemoveFile"),
                 questionary.Choice(title=f"Change expiration date ({transfer_expiration})", value="ChangeExpiration"),
-                questionary.Choice(title=f"Set custom Notification message and subject", value="SetMessage"),
-                questionary.Choice(title=f"Upload {number_of_files} files and send Transfer to {number_of_recipients} recipients", value="SendTransfer", disabled=can_send_disabled, shortcut_key="s"),
+                questionary.Choice(title="Set custom Notification message and subject", value="SetMessage"),
+                questionary.Choice(
+                    title=f"Upload {number_of_files} files and send Transfer to {number_of_recipients} recipients",
+                    value="SendTransfer",
+                    disabled=can_send_disabled,
+                    shortcut_key="s",
+                ),
                 questionary.Choice(title="Abort", value="AbortTransfer", shortcut_key="q"),
             ],
             use_shortcuts=True,
@@ -291,7 +299,9 @@ def send_transfer_interactive(
                 remove_choices = [questionary.Choice(title=f"{file}", value=file) for file in files_list] + [
                     questionary.Choice(title="Back", value="Back", shortcut_key="b")
                 ]
-                select_remove_choice = questionary.select("Which file do you want to remove?", choices=remove_choices, use_shortcuts=True).ask()
+                select_remove_choice = questionary.select(
+                    "Which file do you want to remove?", choices=remove_choices, use_shortcuts=True
+                ).ask()
                 if select_remove_choice == "Back":
                     select_remove = False
                     continue
@@ -311,7 +321,8 @@ def send_transfer_interactive(
             expiration_date = clean_expiration(transfer_expiration)
         if session_option == "SetMessage":
             subject = questionary.text(
-                "What is the subject of the transfer? (blank=default Cryptshare subject)\n").ask()
+                "What is the subject of the transfer? (blank=default Cryptshare subject)\n"
+            ).ask()
             message = questionary.text(
                 "What is the Notification message of the transfer? (blank=default Cryptshare Notification message)\n"
             ).ask()

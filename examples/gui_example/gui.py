@@ -15,9 +15,11 @@ parentdir = os.path.dirname(os.path.dirname(currentdir))
 sys.path.insert(0, parentdir)
 
 from cryptshare.CryptshareClient import CryptshareClient
-from cryptshare.CryptshareNotificationMessage import CryptshareNotificationMessage as NotificationMessage
-from cryptshare.CryptshareTransferSettings import CryptshareTransferSettings
+from cryptshare.CryptshareNotificationMessage import (
+    CryptshareNotificationMessage as NotificationMessage,
+)
 from cryptshare.CryptshareTransferSecurityMode import CryptshareTransferSecurityMode
+from cryptshare.CryptshareTransferSettings import CryptshareTransferSettings
 
 logger = logging.getLogger(__name__)
 LOGGING_CONFIG_FILE = "examples/gui_example/logging_config.json"

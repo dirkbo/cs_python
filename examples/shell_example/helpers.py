@@ -89,6 +89,7 @@ class TqdmFile(TransferFile):
                 )
         return True
 
+
 class TqdmTransfer(CryptshareTransfer):
     def upload_file(self, path: str, cryptshare_client: CryptshareClient = None):
         self._cryptshare_client = cryptshare_client if cryptshare_client else self._cryptshare_client

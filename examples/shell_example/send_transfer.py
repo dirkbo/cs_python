@@ -3,9 +3,10 @@ import logging
 
 from helpers import (
     QuestionaryCryptshareSender,
+    TqdmTransfer,
     clean_string_list,
     send_password_with_twilio,
-    twilio_sms_is_configured, TqdmTransfer,
+    twilio_sms_is_configured,
 )
 
 from cryptshare import CryptshareClient

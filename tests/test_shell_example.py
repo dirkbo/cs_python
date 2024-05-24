@@ -3,8 +3,12 @@ from datetime import datetime, timedelta
 
 from dotenv import load_dotenv
 
-from examples.shell_example.helpers import is_valid_expiration, is_valid_multiple_emails, clean_expiration, \
-    clean_string_list
+from examples.shell_example.helpers import (
+    clean_expiration,
+    clean_string_list,
+    is_valid_expiration,
+    is_valid_multiple_emails,
+)
 
 
 class TestShellExampleHelpers(unittest.TestCase):
