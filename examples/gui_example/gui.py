@@ -5,11 +5,6 @@ import sys
 
 import PySimpleGUI as sg
 
-# To work from exapmples folder, parentfolder is added to path
-currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
-parentdir = os.path.dirname(os.path.dirname(currentdir))
-sys.path.insert(0, parentdir)
-
 import cryptshare.CryptshareClient as CryptshareClient
 import cryptshare.CryptshareNotificationMessage as NotificationMessage
 import cryptshare.CryptshareTransferSettings as Settings
@@ -17,6 +12,12 @@ from cryptshare.CryptshareTransferSecurityMode import (
     CryptshareTransferSecurityMode,
     SecurityModes,
 )
+
+# To work from exapmples folder, parentfolder is added to path
+currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+parentdir = os.path.dirname(os.path.dirname(currentdir))
+sys.path.insert(0, parentdir)
+
 
 # Please change these parameters accordingly to your setup
 cryptshare_server_url = os.getenv("CRYPTSHARE_SERVER_URL", "https://beta.cryptshare.com")
@@ -241,7 +242,7 @@ def display_transfer_information(transfer_settings):
 
 def main():
     #  Set server URL
-    cryptshare_client = CryptshareClient.CryptshareClient(cryptshare_server_url, ssl_verify=False)
+    cryptshare_client = CryptshareClient(server=cryptshare_server_url, ssl_verify=False)
 
     #  Reads existing verifications from the 'store' file if any
     cryptshare_client.read_client_store()
@@ -304,9 +305,6 @@ def main():
         transfer.send_transfer()
     post_transfer_info = transfer.get_transfer_status()
     cryptshare_client.write_client_store()
-
-    #  Create a Download object to perform downloads on.
-    cryptshare_client.download_transfer("pq7KbAIvL9", "Hb$uciWr")
 
     print(pre_transfer_info)
     print(post_transfer_info)
