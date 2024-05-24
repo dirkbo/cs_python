@@ -3,6 +3,7 @@ import os
 from datetime import datetime, timedelta
 
 import questionary
+from dateutil import parser as date_parser
 
 from cryptshare import CryptshareClient, CryptshareSender
 from cryptshare.CryptshareValidators import CryptshareValidators
@@ -11,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 
 class QuestionaryCryptshareSender(CryptshareSender):
-    def verify_sender_email_verification(self, cryptshare_client: CryptshareClient):
+    def verify_sender_email_verification(self, cryptshare_client: CryptshareClient) -> bool:
         """
         Perform an email verification of the sender. Requires User Input.
         Overwritten from CryptshareSender to use questionary for user input.
@@ -32,7 +33,7 @@ class QuestionaryCryptshareSender(CryptshareSender):
         return True
 
 
-def clean_expiration(date_string_value, default_days=2):
+def clean_expiration(date_string_value: [str, datetime], default_days=2) -> datetime:
     """
     This function is used to clean and standardize the expiration date values.
 
@@ -50,79 +51,9 @@ def clean_expiration(date_string_value, default_days=2):
     if date_string_value is None or date_string_value == "":
         return now + timedelta(days=default_days)  # "2028-10-09T11:51:46+02:00"
 
+    # Handle datetime objects by returning them directly
     if type(date_string_value) is datetime:
         return date_string_value
-
-    # Handle various formats of expiration dates
-    try:
-        date_value = datetime.strptime(date_string_value, "%Y-%m-%d")
-    except ValueError:
-        pass
-    else:
-        return date_value
-
-    try:
-        date_value = datetime.strptime(date_string_value, "%Y-%m-%dT%H:%M:%S%z")
-    except ValueError:
-        pass
-    else:
-        return date_value
-
-    try:
-        date_value = datetime.strptime(date_string_value, "%Y-%m-%d %H:%M:%S")
-    except ValueError:
-        pass
-    else:
-        return date_value
-
-    try:
-        date_value = datetime.strptime(date_string_value, "%Y-%m-%d %H:%M:%S%z")
-    except ValueError:
-        pass
-    else:
-        return date_value
-
-    try:
-        date_value = datetime.strptime(date_string_value, "%Y-%m-%d %H:%M:%S %z")
-    except ValueError:
-        pass
-    else:
-        return date_value
-
-    try:
-        date_value = datetime.strptime(date_string_value, "%d.%m.%Y")
-    except ValueError:
-        pass
-    else:
-        return date_value
-
-    try:
-        date_value = datetime.strptime(date_string_value, "%d.%m.%YT%H:%M:%S%z")
-    except ValueError:
-        pass
-    else:
-        return date_value
-
-    try:
-        date_value = datetime.strptime(date_string_value, "%d.%m.%Y %H:%M:%S")
-    except ValueError:
-        pass
-    else:
-        return date_value
-
-    try:
-        date_value = datetime.strptime(date_string_value, "%d.%m.%Y %H:%M:%S%z")
-    except ValueError:
-        pass
-    else:
-        return date_value
-
-    try:
-        date_value = datetime.strptime(date_string_value, "%d.%m.%Y %H:%M:%S %z")
-    except ValueError:
-        pass
-    else:
-        return date_value
 
     # Handle relative expiration dates
     if date_string_value == "tomorrow":
@@ -139,10 +70,19 @@ def clean_expiration(date_string_value, default_days=2):
     if date_string_value.endswith("m"):
         months = int(date_string_value[:-1])
         return now + timedelta(weeks=months * 4)
+
+    # Handle various formats of expiration dates
+    try:
+        date_value = date_parser.parse(date_string_value)
+    except ValueError:
+        pass
+    else:
+        return date_value
+
     raise ValueError(f"Invalid expiration date: {date_string_value}")
 
 
-def is_valid_expiration(date_string_value):
+def is_valid_expiration(date_string_value: str) -> bool:
     if date_string_value is None or date_string_value == "":
         return False
     try:
@@ -152,7 +92,7 @@ def is_valid_expiration(date_string_value):
     return True
 
 
-def is_valid_multiple_emails(email_list: str):
+def is_valid_multiple_emails(email_list: str) -> bool:
     if email_list is None or email_list == "":
         return True
     emails = email_list.split(" ")
@@ -162,7 +102,7 @@ def is_valid_multiple_emails(email_list: str):
     return True
 
 
-def clean_string_list(string_list):
+def clean_string_list(string_list: [list, str]) -> list[str]:
     """
     This function is used to clean and standardize the input string list.
 
@@ -174,22 +114,24 @@ def clean_string_list(string_list):
 
     if string_list is None or string_list == "":
         return []
-    try:
+
+    if type(string_list) is str:
         string_list = string_list.split(" ")
-    except AttributeError:
-        pass
-    except Exception as e:
-        print(type(e))
-        print(e)
-    if type(string_list) is not list:
-        string_list = [string_list]
+    else:
+        try:
+            string_list = [str(item) for item in string_list]
+        except TypeError:
+            return list()
+
+    if type(string_list) is not list[str]:
+        string_list = list(string_list)
 
     # remove duplicates
     string_list = list(dict.fromkeys(string_list))
     return string_list
 
 
-def twilio_sms_is_configured():
+def twilio_sms_is_configured() -> bool:
     account_sid = os.getenv("TWILIO_ACCOUNT_SID", None)
     auth_token = os.getenv("TWILIO_AUTH_TOKEN", None)
     sender_phone = os.getenv("TWILIO_SENDER_PHONE", None)
@@ -201,7 +143,7 @@ def twilio_sms_is_configured():
     return True
 
 
-def send_password_with_twilio(tracking_id, password, recipient_sms, recipient_email=None):
+def send_password_with_twilio(tracking_id: str, password: str, recipient_sms: str, recipient_email: str = None) -> None:
     # Find these values at https://twilio.com/user/account
     # To set up environmental variables, see http://twil.io/secure
 

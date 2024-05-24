@@ -17,7 +17,11 @@ class CryptshareValidators:
             return True
         # Make a regular expression for validating an Email
         email_regex = re.compile(
-            r"((?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*|\"(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21\x23-\x5b\x5d-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])*\")@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\[(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?|[a-z0-9-]*[a-z0-9]:(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21-\x5a\x53-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])+)\]))"
+            r"((?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*|\"(?:["
+            r"\x01-\x08\x0b\x0c\x0e-\x1f\x21\x23-\x5b\x5d-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])*\")@(?:(?:[a-z0-9]("
+            r"?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\[(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9]["
+            r"0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?|[a-z0-9-]*[a-z0-9]:(?:["
+            r"\x01-\x08\x0b\x0c\x0e-\x1f\x21-\x5a\x53-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])+)]))"
         )
 
         if re.fullmatch(email_regex, email):
@@ -72,14 +76,10 @@ class CryptshareValidators:
             return False
 
         # First parts of the tracking ID has to be a valid datetime
-        try:
-            part1 = tracking_id.split("-")[0]
-            part2 = tracking_id.split("-")[1]
-        except IndexError:
-            logger.debug(f"Invalid Tracking ID: {tracking_id}")
-            return False
-
+        part1 = tracking_id.split("-")[0]
+        part2 = tracking_id.split("-")[1]
         tracking_id_timestamp = f"{part1}-{part2}"
+
         try:
             datetime.strptime(tracking_id_timestamp, "%Y%m%d-%H%M%S")
         except ValueError:

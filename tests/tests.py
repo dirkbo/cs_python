@@ -4,13 +4,20 @@ import sys
 import unittest
 from datetime import datetime, timedelta, timezone
 
+from dotenv import load_dotenv
+
 # To work from tests folder, parent folder is added to path
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 parentdir = os.path.dirname(currentdir)
 sys.path.insert(0, parentdir)
 
-from cryptshare import CryptshareValidators
-from examples.shell_example.helpers import clean_expiration, clean_string_list
+from cryptshare import CryptshareClient, CryptshareValidators
+from examples.shell_example.helpers import (
+    clean_expiration,
+    clean_string_list,
+    is_valid_expiration,
+    is_valid_multiple_emails,
+)
 
 
 class TestCryptshareValidators(unittest.TestCase):
@@ -175,18 +182,35 @@ class TestCryptshareTransferSettings(unittest.TestCase):
         )
 
 
+class TestCryptshareServerSide(unittest.TestCase):
+    def test_server_side(self):
+        cryptshare_server = os.getenv("CRYPTSHARE_SERVER", None)
+        if not cryptshare_server:
+            self.skipTest("CRYPTSHARE_SERVER is not set")
+
+        client = CryptshareClient(cryptshare_server)
+        client.request_client_id()
+        self.assertIsNotNone(client.header.client_id)
+
+
 class TestShellExampleHelpers(unittest.TestCase):
     def test_clean_string_list(self):
-        self.assertEqual(clean_string_list(["a", "b", "c"]), ["a", "b", "c"])
+        self.assertEqual(clean_string_list(["a", "b", "c"]), list(("a", "b", "c")))
         self.assertEqual(clean_string_list("a b"), ["a", "b"])
         self.assertEqual(clean_string_list(None), [])
         self.assertEqual(clean_string_list(""), [])
         self.assertEqual(clean_string_list("A"), ["A"])
+        self.assertEqual(clean_string_list("A"), ["A"])
+        self.assertEqual(clean_string_list(1), [])
+        self.assertEqual(clean_string_list((1, 2, 3)), ["1", "2", "3"])
+        self.assertEqual(clean_string_list({1: "2", 2: "2", "3": "3"}), ["1", "2", "3"])
+        self.assertEqual(clean_string_list({1, 2, 3}), ["1", "2", "3"])
 
     def test_clean_expiration(self):
         now = datetime.now()
         default_days = 2
         self.assertEqual(clean_expiration("tomorrow").date(), (now + timedelta(days=1)).date())
+        self.assertEqual(clean_expiration(now).date(), now.date())
         self.assertEqual(
             clean_expiration("", default_days=default_days).date(), (now + timedelta(days=default_days)).date()
         )
@@ -198,12 +222,32 @@ class TestShellExampleHelpers(unittest.TestCase):
         self.assertEqual(clean_expiration("1w").date(), (now + timedelta(weeks=1)).date())
         self.assertEqual(clean_expiration("1m").date(), (now + timedelta(weeks=4)).date())
         self.assertEqual(clean_expiration("2024-01-01").date(), datetime(2024, 1, 1).date())
+        self.assertEqual(clean_expiration("2024-01-01 ").date(), datetime(2024, 1, 1).date())
+        self.assertEqual(clean_expiration("2024-01-21T13:01").date(), datetime(2024, 1, 21).date())
         self.assertEqual(clean_expiration("1.1.2024").date(), datetime(2024, 1, 1).date())
         self.assertEqual(clean_expiration("01.01.2024").date(), datetime(2024, 1, 1).date())
         self.assertEqual(clean_expiration("1.1.2024 12:12:12").date(), datetime(2024, 1, 1).date())
+        self.assertEqual(clean_expiration("1.1.2024T12:12:12+0200").date(), datetime(2024, 1, 1).date())
+        self.assertEqual(clean_expiration("1.1.2024T12:12:12 +0200").date(), datetime(2024, 1, 1).date())
         self.assertEqual(clean_expiration("01.01.2024 12:12:12").date(), datetime(2024, 1, 1).date())
         self.assertEqual(clean_expiration("1.1.2024 12:12:12+0000").date(), datetime(2024, 1, 1).date())
+        self.assertEqual(clean_expiration("2024-01-01T08:01:55+0200").date(), datetime(2024, 1, 1).date())
+        with self.assertRaises(ValueError):
+            clean_expiration("20sdgdfgdfghdsghf0")
+
+    def test_is_valid_multiple_emails(self):
+        self.assertTrue(is_valid_multiple_emails(""))
+        self.assertTrue(is_valid_multiple_emails("test@example.com"))
+        self.assertTrue(is_valid_multiple_emails("test@example.com example@example.com"))
+        self.assertFalse(is_valid_multiple_emails("test.com"))
+
+    def test_is_valid_expiration(self):
+        now = datetime.now()
+        self.assertTrue(is_valid_expiration(now))
+        self.assertFalse(is_valid_expiration(""))
+        self.assertFalse(is_valid_expiration("20sdgdfgdfghdsghf0"))
 
 
 if __name__ == "__main__":
+    load_dotenv()
     unittest.main()
