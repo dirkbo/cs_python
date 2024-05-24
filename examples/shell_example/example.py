@@ -17,11 +17,10 @@ sys.path.insert(0, parentdir)
 from helpers import (
     QuestionaryCryptshareSender,
     clean_expiration,
-    is_valid_expiration,
-    is_valid_multiple_emails,
 )
 from receive_transfer import receive_transfer
 from send_transfer import send_transfer
+from send_transfer_interactive import send_transfer_interactive
 from transfer_status import transfer_status
 
 from cryptshare import CryptshareClient, CryptshareValidators
@@ -94,7 +93,7 @@ def interactive_user_choice():
     return mode
 
 
-def transfer_status_interactive(default_server_url, default_sender_email, origin):
+def transfer_status_interactive(default_server_url, default_sender_email):
     send_server = questionary.text(
         "Which server do you want to use to check a Transfer status?\n",
         default=default_server_url,
@@ -122,108 +121,6 @@ def transfer_status_interactive(default_server_url, default_sender_email, origin
     sender = QuestionaryCryptshareSender(email=sender_email, name="REST-API Sender", phone="0")
     sender.setup_and_verify_sender(client)
     transfer_status(client, transfer_transfer_id)
-
-
-def send_transfer_interactive(
-    default_server_url, default_sender_email, default_sender_name, default_sender_phone, origin
-):
-    send_server = questionary.text(
-        "Which server do you want to use to send a Transfer?\n",
-        default=default_server_url,
-        validate=CryptshareValidators.is_valid_server_url,
-    ).ask()
-    if send_server == "":
-        send_server = default_server_url
-    print(f"Sending transfer using {send_server}")
-
-    if default_sender_email is None or not CryptshareValidators.is_valid_email_or_blank(default_sender_email):
-        default_sender_email = ""
-    sender_email = questionary.text(
-        "From which email do you want to send transfers?\n",
-        default=default_sender_email,
-        validate=CryptshareValidators.is_valid_email,
-    ).ask()
-    if sender_email == "":
-        sender_email = default_sender_email
-    sender_name = questionary.text(
-        "What is the name of the sender?\n",
-        default=default_sender_name,
-    ).ask()
-    if sender_name == "":
-        sender_name = default_sender_name
-    sender_phone = questionary.text(
-        "What is the phone number of the sender?\n",
-        default=default_sender_phone,
-    ).ask()
-    if sender_phone == "":
-        sender_phone = default_sender_phone
-
-    transfer_password = questionary.password(
-        "What is the password for the transfer? (blank=Password will be generated)\n"
-    ).ask()
-    files = questionary.path(
-        "Which files do you want to send? (separate multiple files with a space, default=example_files/test_file.txt)\n",
-        default="examples/example_files/test_file.txt",
-    ).ask()
-    if files == "":
-        files = "examples/example_files/test_file.txt"
-
-    all_recipients = []
-    recipients = ""
-    cc = ""
-    bcc = ""
-    while len(all_recipients) == 0:
-        recipients = questionary.text(
-            "Which email addresses do you want to send to? (separate multiple addresses with a space)\n",
-            validate=is_valid_multiple_emails,
-        ).ask()
-        cc = questionary.text(
-            "Which email addresses do you want to cc? (separate multiple addresses with a space)\n",
-            validate=is_valid_multiple_emails,
-        ).ask()
-        bcc = questionary.text(
-            "Which email addresses do you want to bcc? (separate multiple addresses with a space)\n",
-            validate=is_valid_multiple_emails,
-        ).ask()
-        all_recipients = (
-            [recipient for recipient in recipients.split(" ") if recipient != ""]
-            + [cc_ for cc_ in cc.split(" ") if cc_ != ""]
-            + [bcc_ for bcc_ in bcc.split(" ") if bcc_ != ""]
-        )
-        logger.debug(f"{len(all_recipients)} Recipients: {all_recipients}")
-        if len(all_recipients) == 0:
-            print("Please provide at least one recipient, cc recipient or bcc recipient.")
-
-    subject = questionary.text("What is the subject of the transfer? (blank=default Cryptshare subject)\n").ask()
-    message = questionary.text(
-        "What is the Notification message of the transfer? (blank=default Cryptshare Notification message)\n"
-    ).ask()
-
-    transfer_expiration = questionary.text(
-        "When should the transfer expire?\n",
-        default="5d",
-        validate=is_valid_expiration,
-    ).ask()
-    if transfer_expiration == "":
-        transfer_expiration = "2d"
-    transfer_expiration = clean_expiration(transfer_expiration)
-    print(f"Transfer expiration: {transfer_expiration}")
-
-    send_transfer(
-        origin,
-        send_server,
-        sender_email,
-        sender_name,
-        sender_phone,
-        transfer_password,
-        transfer_expiration,
-        files,
-        recipients,
-        cc=cc,
-        bcc=bcc,
-        subject=subject,
-        message=message,
-    )
 
 
 def download_transfer_interactive(default_server_url, origin):

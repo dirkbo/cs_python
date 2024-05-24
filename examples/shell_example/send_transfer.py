@@ -1,4 +1,3 @@
-import hashlib
 import itertools
 import logging
 
@@ -6,14 +5,11 @@ from helpers import (
     QuestionaryCryptshareSender,
     clean_string_list,
     send_password_with_twilio,
-    twilio_sms_is_configured,
+    twilio_sms_is_configured, TqdmTransfer,
 )
-from tqdm import tqdm
-from tqdm.utils import CallbackIOWrapper
 
 from cryptshare import CryptshareClient
 from cryptshare.CryptshareNotificationMessage import CryptshareNotificationMessage
-from cryptshare.CryptshareTransfer import CryptshareTransfer, TransferFile
 from cryptshare.CryptshareTransferSecurityMode import (
     CryptshareTransferSecurityMode,
     SecurityModes,
@@ -21,53 +17,6 @@ from cryptshare.CryptshareTransferSecurityMode import (
 from cryptshare.CryptshareTransferSettings import CryptshareTransferSettings
 
 logger = logging.getLogger(__name__)
-
-
-class TqdmFile(TransferFile):
-    """File class with tqdm progress bar for file upload"""
-
-    def calculate_checksum(self):
-        logger.debug("Calculating checksum")  # Calculate file hashsum
-        with open(self.path, "rb") as data:
-            file_content = data.read()
-            self.checksum = hashlib.sha256(file_content).hexdigest()
-            print(f"Checksum for {self.name}: {self.checksum}")
-
-    def upload_file_content(self):
-        upload_url = f"{self.transfer_session_url}/files/{self._file_id}/content"
-        logger.info(f"Uploading file {self.name} content to {upload_url}")
-
-        with open(self.path, "rb") as f:
-            with tqdm(total=self.size, unit="B", unit_scale=True, unit_divisor=1024) as t:
-                wrapped_file = CallbackIOWrapper(t.update, f, "read")
-                self._request(
-                    "PUT",
-                    upload_url,
-                    data=wrapped_file,
-                    verify=self._cryptshare_client.ssl_verify,
-                    headers=self._cryptshare_client.header.request_header,
-                    handle_response=False,
-                )
-        return True
-
-
-class TqdmTransfer(CryptshareTransfer):
-    def upload_file(self, path: str, cryptshare_client: CryptshareClient = None):
-        self._cryptshare_client = cryptshare_client if cryptshare_client else self._cryptshare_client
-        # Update transfer's cryptshare client, if provided
-
-        if not self._session_is_open:
-            logger.error("Cryptshare Transfer Session is not open, can't upload file")
-            return None
-
-        url = f"{self.get_transfer_session_url()}/files"
-        logger.debug(f"Uploading file {path} to {url}")
-
-        file = TqdmFile(path, self.tracking_id, self._cryptshare_client)
-        file.announce_upload()
-        file.upload_file_content()
-        self.files.append(file)
-        return file
 
 
 def send_transfer(
