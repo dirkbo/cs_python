@@ -1,6 +1,6 @@
 import os
 
-from helpers import TqdmCryptshareDownload
+from helpers import ShellCryptshareDownload
 from tqdm import tqdm
 
 from cryptshare import CryptshareClient
@@ -34,7 +34,7 @@ def receive_transfer(
     directory = os.path.join("transfers", save_path)
     print(f"Downloading Transfer {recipient_transfer_id} from {dl_server}...")
 
-    download = TqdmCryptshareDownload(cryptshare_client, recipient_transfer_id, password)
+    download = ShellCryptshareDownload(cryptshare_client, recipient_transfer_id, password)
     if download_eml:
         download.download_eml_file(directory)
         print(f"Downloaded Transfer {recipient_transfer_id} as eml file  to {directory} complete.")

@@ -1,5 +1,5 @@
 import questionary
-from helpers import ExtendedCryptshareValidators
+from helpers import ShellCryptshareValidators
 
 from examples.shell_example.receive_transfer import receive_transfer
 
@@ -8,7 +8,7 @@ def receive_transfer_interactive(default_server_url):
     dl_server = questionary.text(
         "From which server do you want to download a Transfer?",
         default=default_server_url,
-        validate=ExtendedCryptshareValidators.is_valid_server_url,
+        validate=ShellCryptshareValidators.is_valid_server_url,
     ).ask()
     if dl_server == "":
         dl_server = default_server_url
@@ -17,7 +17,7 @@ def receive_transfer_interactive(default_server_url):
     recipient_transfer_id = questionary.text(
         f"Which transfer ID did you receive from {default_server_url}?\n",
         default="",
-        validate=ExtendedCryptshareValidators.is_valid_transfer_id,
+        validate=ShellCryptshareValidators.is_valid_transfer_id,
     ).ask()
     password = questionary.password(f"What is the PASSWORD for transfer {recipient_transfer_id}?\n").ask()
 

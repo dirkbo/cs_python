@@ -2,9 +2,9 @@ import itertools
 import logging
 
 from helpers import (
-    ExtendedCryptshareValidators,
-    QuestionaryCryptshareSender,
-    TqdmTransfer,
+    ShellCryptshareValidators,
+    ShellCryptshareSender,
+    ShellCryptshareTransfer,
     send_password_with_twilio,
 )
 
@@ -39,10 +39,10 @@ def send_transfer(
     if cryptshare_client is None:
         cryptshare_client = CryptshareClient(send_server)
 
-    files = ExtendedCryptshareValidators.clean_string_list(files)
-    recipients = ExtendedCryptshareValidators.clean_string_list(recipients)
-    cc = ExtendedCryptshareValidators.clean_string_list(cc)
-    bcc = ExtendedCryptshareValidators.clean_string_list(bcc)
+    files = ShellCryptshareValidators.clean_string_list(files)
+    recipients = ShellCryptshareValidators.clean_string_list(recipients)
+    cc = ShellCryptshareValidators.clean_string_list(cc)
+    bcc = ShellCryptshareValidators.clean_string_list(bcc)
 
     transformed_recipients = [{"mail": recipient} for recipient in recipients]
     transformed_cc_recipients = [{"mail": recipient} for recipient in cc]
@@ -69,11 +69,11 @@ def send_transfer(
         # Check CORS state for a specific origin.
         cryptshare_client.cors(origin)
 
-    sender = QuestionaryCryptshareSender(sender_name, sender_phone, sender_email)
+    sender = ShellCryptshareSender(sender_name, sender_phone, sender_email)
     sender.setup_and_verify_sender(cryptshare_client)
 
     send_password_sms = False
-    if ExtendedCryptshareValidators.twilio_sms_is_configured() and recipient_sms_phones is not None:
+    if ShellCryptshareValidators.twilio_sms_is_configured() and recipient_sms_phones is not None:
         send_password_sms = True
 
     show_generated_pasword = not send_password_sms
@@ -127,7 +127,7 @@ def send_transfer(
     print(f" Expiration Date: {settings.expiration_date}")
 
     #  Start of transfer on server side
-    transfer = TqdmTransfer(
+    transfer = ShellCryptshareTransfer(
         settings,
         to=transformed_recipients,
         cc=transformed_cc_recipients,

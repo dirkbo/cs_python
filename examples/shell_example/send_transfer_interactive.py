@@ -14,11 +14,11 @@ parentdir = os.path.dirname(os.path.dirname(currentdir))
 sys.path.insert(0, parentdir)
 
 from helpers import (
-    ExtendedCryptshareValidators,
-    QuestionaryCryptshareSender,
+    ShellCryptshareValidators,
+    ShellCryptshareSender,
     questionary_ask_for_sender,
 )
-from send_transfer import TqdmTransfer
+from send_transfer import ShellCryptshareTransfer
 
 from cryptshare import CryptshareClient
 from cryptshare.CryptshareNotificationMessage import CryptshareNotificationMessage
@@ -37,7 +37,7 @@ def send_transfer_interactive(
     send_server = questionary.text(
         "Which server do you want to use to send a Transfer?\n",
         default=default_server_url,
-        validate=ExtendedCryptshareValidators.is_valid_server_url,
+        validate=ShellCryptshareValidators.is_valid_server_url,
     ).ask()
     if send_server == "":
         send_server = default_server_url
@@ -57,7 +57,7 @@ def send_transfer_interactive(
         # Check CORS state for a specific origin.
         cryptshare_client.cors(origin)
 
-    sender = QuestionaryCryptshareSender(sender_name, sender_phone, sender_email)
+    sender = ShellCryptshareSender(sender_name, sender_phone, sender_email)
     sender.setup_and_verify_sender(cryptshare_client)
 
     all_recipients = []
@@ -133,23 +133,23 @@ def send_transfer_interactive(
         if recipient_selection == "AddTo":
             recipients = questionary.text(
                 "Which email addresses do you want to send to? (separate multiple addresses with a space)\n",
-                validate=ExtendedCryptshareValidators.is_valid_multiple_emails,
+                validate=ShellCryptshareValidators.is_valid_multiple_emails,
             ).ask()
         if recipient_selection == "AddCC":
             cc = questionary.text(
                 "Which email addresses do you want to cc? (separate multiple addresses with a space)\n",
-                validate=ExtendedCryptshareValidators.is_valid_multiple_emails,
+                validate=ShellCryptshareValidators.is_valid_multiple_emails,
             ).ask()
         if recipient_selection == "AddBcc":
             bcc = questionary.text(
                 "Which email addresses do you want to bcc? (separate multiple addresses with a space)\n",
-                validate=ExtendedCryptshareValidators.is_valid_multiple_emails,
+                validate=ShellCryptshareValidators.is_valid_multiple_emails,
             ).ask()
 
         # Validate policy for recipients before adding them
-        new_recipients_list.extend(ExtendedCryptshareValidators.clean_string_list(recipients))
-        new_cc_list.extend(ExtendedCryptshareValidators.clean_string_list(cc))
-        new_bcc_list.extend(ExtendedCryptshareValidators.clean_string_list(bcc))
+        new_recipients_list.extend(ShellCryptshareValidators.clean_string_list(recipients))
+        new_cc_list.extend(ShellCryptshareValidators.clean_string_list(cc))
+        new_bcc_list.extend(ShellCryptshareValidators.clean_string_list(bcc))
         new_all_recipients = list(itertools.chain(new_recipients_list, new_cc_list, new_bcc_list))
         # All recipients list needed for policy request
 
@@ -222,7 +222,7 @@ def send_transfer_interactive(
     do_abort = False
     default_transfer_expiration = "2d"
     transfer_expiration = default_transfer_expiration
-    expiration_date = ExtendedCryptshareValidators.clean_expiration(default_transfer_expiration)
+    expiration_date = ShellCryptshareValidators.clean_expiration(default_transfer_expiration)
     subject = ""
     message = ""
     files_list = []
@@ -241,7 +241,7 @@ def send_transfer_interactive(
     transformed_recipients = [{"mail": recipient} for recipient in recipients_list]
     transformed_cc_recipients = [{"mail": recipient} for recipient in cc_list]
     transformed_bcc_recipients = [{"mail": recipient} for recipient in bcc_list]
-    transfer = TqdmTransfer(
+    transfer = ShellCryptshareTransfer(
         settings,
         to=transformed_recipients,
         cc=transformed_cc_recipients,
@@ -316,7 +316,7 @@ def send_transfer_interactive(
             ).ask()
             if files == "":
                 files = "examples/example_files/test_file.txt"
-            files = ExtendedCryptshareValidators.clean_string_list(files)
+            files = ShellCryptshareValidators.clean_string_list(files)
             files_list.extend(files)
             files_list = list(dict.fromkeys(files_list))
         if session_option == "RemoveFile":
@@ -339,12 +339,12 @@ def send_transfer_interactive(
             transfer_expiration = questionary.text(
                 "When should the transfer expire?\n",
                 default=f"{transfer_expiration}",
-                validate=ExtendedCryptshareValidators.is_valid_expiration,
+                validate=ShellCryptshareValidators.is_valid_expiration,
             ).ask()
             if transfer_expiration == "":
                 transfer_expiration = "2d"
             print(f"Transfer expiration: {transfer_expiration}")
-            expiration_date = ExtendedCryptshareValidators.clean_expiration(transfer_expiration)
+            expiration_date = ShellCryptshareValidators.clean_expiration(transfer_expiration)
             # ToDo: Validate against server policy
         if session_option == "SetMessage":
             message = questionary.text(

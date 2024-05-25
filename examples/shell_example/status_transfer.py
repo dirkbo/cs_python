@@ -3,8 +3,8 @@ import pprint
 
 from cryptshare import CryptshareClient
 from examples.shell_example.helpers import (
-    ExtendedCryptshareValidators,
-    QuestionaryCryptshareSender,
+    ShellCryptshareValidators,
+    ShellCryptshareSender,
 )
 
 logger = logging.getLogger(__name__)
@@ -20,11 +20,11 @@ def status_transfer(
     :return:
     """
     if transfer_tracking_id is not None:
-        if not ExtendedCryptshareValidators.is_valid_tracking_id(transfer_tracking_id):
+        if not ShellCryptshareValidators.is_valid_tracking_id(transfer_tracking_id):
             logger.error(f"Invalid transfer tracking id: {transfer_tracking_id}")
             return
 
-    sender = QuestionaryCryptshareSender("", "", cryptshare_client.sender_email)
+    sender = ShellCryptshareSender("", "", cryptshare_client.sender_email)
     sender.setup_and_verify_sender(cryptshare_client)
 
     if transfer_tracking_id is None or transfer_tracking_id == "":

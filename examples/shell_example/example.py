@@ -22,7 +22,7 @@ from status_transfer import status_transfer
 from status_transfer_interactive import status_transfer_interactive
 
 from cryptshare import CryptshareClient
-from examples.shell_example.helpers import ExtendedCryptshareValidators
+from examples.shell_example.helpers import ShellCryptshareValidators
 
 logger = logging.getLogger(__name__)
 LOGGING_CONFIG_FILE = "examples/shell_example/logging_config.json"
@@ -114,7 +114,7 @@ def main() -> None:
 
     if inputs.mode == "send":
         new_transfer_password = inputs.password
-        transfer_expiration = ExtendedCryptshareValidators.clean_expiration(inputs.expiration)
+        transfer_expiration = ShellCryptshareValidators.clean_expiration(inputs.expiration)
         send_transfer(
             origin,
             default_server_url,

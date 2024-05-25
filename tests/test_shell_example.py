@@ -6,17 +6,17 @@ from dotenv import load_dotenv
 from test_cryptshare import TestCryptshareValidators
 
 from cryptshare import CryptshareValidators
-from examples.shell_example.helpers import ExtendedCryptshareValidators
+from examples.shell_example.helpers import ShellCryptshareValidators
 
 
 class TestExtendedCryptshareValidators(TestCryptshareValidators):
     def __init__(self, *args, **kwargs):
         super(TestCryptshareValidators, self).__init__(*args, **kwargs)
-        self.cls = ExtendedCryptshareValidators()
+        self.cls = ShellCryptshareValidators()
 
     def test_class(self):
         self.assertTrue(issubclass(self.cls.__class__, CryptshareValidators))
-        self.assertTrue(isinstance(self.cls, ExtendedCryptshareValidators))
+        self.assertTrue(isinstance(self.cls, ShellCryptshareValidators))
 
     def test_clean_string_list(self):
         self.assertEqual(self.cls.clean_string_list(["a", "b", "c"]), list(("a", "b", "c")))

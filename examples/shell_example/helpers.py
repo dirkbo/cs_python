@@ -16,7 +16,7 @@ from cryptshare.CryptshareValidators import CryptshareValidators
 logger = logging.getLogger(__name__)
 
 
-class ExtendedCryptshareValidators(CryptshareValidators):
+class ShellCryptshareValidators(CryptshareValidators):
     """Cryptshare Validators class extended to validate and clean userdata."""
 
     @staticmethod
@@ -73,7 +73,7 @@ class ExtendedCryptshareValidators(CryptshareValidators):
         if date_string_value is None or date_string_value == "":
             return False
         try:
-            ExtendedCryptshareValidators.clean_expiration(date_string_value)
+            ShellCryptshareValidators.clean_expiration(date_string_value)
         except ValueError:
             return False
         return True
@@ -84,7 +84,7 @@ class ExtendedCryptshareValidators(CryptshareValidators):
             return True
         emails = email_list.split(" ")
         for email in emails:
-            if not ExtendedCryptshareValidators.is_valid_email(email):
+            if not ShellCryptshareValidators.is_valid_email(email):
                 return False
         return True
 
@@ -131,12 +131,12 @@ class ExtendedCryptshareValidators(CryptshareValidators):
 
 
 def questionary_ask_for_sender(default_sender_email: str, default_sender_name: str, default_sender_phone: str) -> tuple:
-    if default_sender_email is None or not ExtendedCryptshareValidators.is_valid_email_or_blank(default_sender_email):
+    if default_sender_email is None or not ShellCryptshareValidators.is_valid_email_or_blank(default_sender_email):
         default_sender_email = ""
     sender_email = questionary.text(
         "From which email do you want to send transfers?\n",
         default=default_sender_email,
-        validate=ExtendedCryptshareValidators.is_valid_email,
+        validate=ShellCryptshareValidators.is_valid_email,
     ).ask()
     if sender_email == "":
         sender_email = default_sender_email
@@ -155,7 +155,7 @@ def questionary_ask_for_sender(default_sender_email: str, default_sender_name: s
     return sender_email, sender_name, sender_phone
 
 
-class QuestionaryCryptshareSender(CryptshareSender):
+class ShellCryptshareSender(CryptshareSender):
     def verify_sender_email_verification(self, cryptshare_client: CryptshareClient) -> bool:
         """
         Perform an email verification of the sender. Requires User Input.
@@ -177,11 +177,11 @@ class QuestionaryCryptshareSender(CryptshareSender):
         return True
 
 
-class TqdmFile(TransferFile):
+class ShellTransferFile(TransferFile):
     """File class with tqdm progress bar for file upload"""
 
     def calculate_checksum(self):
-        super(TqdmFile, self).calculate_checksum()
+        super(ShellTransferFile, self).calculate_checksum()
         print(f"Checksum for {self.name}: {self.checksum}")
 
     def upload_file_content(self):
@@ -202,7 +202,7 @@ class TqdmFile(TransferFile):
         return True
 
 
-class TqdmCryptshareDownload(CryptshareDownload):
+class ShellCryptshareDownload(CryptshareDownload):
     """A class to download files from a Cryptshare server with a progress bar."""
 
     def download_file(self, url: str, filename: str, directory: str, size: int = None) -> None:
@@ -243,7 +243,7 @@ class TqdmCryptshareDownload(CryptshareDownload):
                 handle.write(data)
 
 
-class TqdmTransfer(CryptshareTransfer):
+class ShellCryptshareTransfer(CryptshareTransfer):
     def upload_file(self, path: str, cryptshare_client: CryptshareClient = None):
         self._cryptshare_client = cryptshare_client if cryptshare_client else self._cryptshare_client
         # Update transfer's cryptshare client, if provided
@@ -255,7 +255,7 @@ class TqdmTransfer(CryptshareTransfer):
         url = f"{self.get_transfer_session_url()}/files"
         logger.debug(f"Uploading file {path} to {url}")
 
-        file = TqdmFile(path, self.tracking_id, self._cryptshare_client)
+        file = ShellTransferFile(path, self.tracking_id, self._cryptshare_client)
         file.announce_upload()
         file.upload_file_content()
         self.files.append(file)
@@ -266,7 +266,7 @@ def send_password_with_twilio(tracking_id: str, password: str, recipient_sms: st
     # Find these values at https://twilio.com/user/account
     # To set up environmental variables, see http://twil.io/secure
 
-    if not ExtendedCryptshareValidators.twilio_sms_is_configured():
+    if not ShellCryptshareValidators.twilio_sms_is_configured():
         logger.info(f"Twilio SMS is not configured. SMS not sent to {recipient_sms}.")
         return
 
