@@ -80,10 +80,29 @@ install additional requirements
 `python examples/shell_example/example.py -m send -e test@example.com -f example_files/test_file.txt -f example_files/file-example_PDF_1MB.pdf --bcc test1@example.com --bcc 'test2@example.com' --sms_recipient +49123456789 --sms_recipient +4112345678`
 
 ### receive transfer from commandline
-`python examples/shell_example/example.py -m receive -t 5xVluOW7NR -p 'test!Test1'`
+
+#### Download all files to transfers/transfer_id/
+`python examples/shell_example/example.py -m receive -transfer_id 5yVluOW8NR -p 'test!Test1'`
+
+#### Download a .zip file containing all files to transfers/transfer_id/
+`python examples/shell_example/example.py -m receive -transfer_id 5yVluOW8NR -p 'test!Test1' --zip`
+
+#### Download a .eml file containing all files to transfers/transfer_id/
+Only works, when the transfer contains a confidential message.
+
+`python examples/shell_example/example.py -m receive -transfer_id 5yVluOW8NR -p 'test!Test1' --eml`
+
+### check status of send transfers from commandline
+#### All send transfers
+`python examples/shell_example/example.py -m status '`
+
+#### A specific sent transfer
+`python examples/shell_example/example.py -m status -tracking_id 20240524-192513-3n2yqVIW`
 
 ### start interactive transfer from commandline
 `python examples/shell_example/example.py`
+
+`python examples/shell_example/example.py -m interactive`
 
 ## GUI examples
 Requires PySimpleGUI

@@ -28,7 +28,7 @@ extend-ignore = [
 branch = true
 source = ["."]
 command_line = "-m unittest discover -s tests"
-omit = ["*tests*"]
+omit = ["tests/", "test*.py", "*_interactive.py"]
 relative_files = true
 [tool.coverage.html]
 directory = "tests/coverage_html_report"

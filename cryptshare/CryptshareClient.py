@@ -164,6 +164,42 @@ class CryptshareClient(CryptshareApiRequests):
             return True
         return False
 
+    def get_language_packs(self) -> list:
+        # "GET https://<your-url>/api/products/<product-key>/language-packs"
+        path = self.api_path("products") + "api.rest/language-packs"
+        logger.info(f"Getting language packs from {path}")
+        r = self._request(
+            "GET",
+            path,
+            verify=self.ssl_verify,
+            headers=self.header.request_header,
+        )
+        return r
+
+    def get_terms_of_use(self) -> dict:
+        # "GET https://<your-url>/api/products/<product-key>/terms-of-use"
+        path = self.api_path("products") + "api.rest/legal/terms-of-use"
+        logger.info(f"Getting terms of use from {path}")
+        r = self._request(
+            "GET",
+            path,
+            verify=self.ssl_verify,
+            headers=self.header.request_header,
+        )
+        return r
+
+    def get_imprint(self) -> dict:
+        # "GET https://<your-url>/api/products/<product-key>/imprint"
+        path = self.api_path("products") + "api.rest/legal/imprint"
+        logger.info(f"Getting imprint from {path}")
+        r = self._request(
+            "GET",
+            path,
+            verify=self.ssl_verify,
+            headers=self.header.request_header,
+        )
+        return r
+
     def start_transfer(self, recipients, settings: CryptshareTransferSettings) -> CryptshareTransfer:
         logger.debug(f"Starting transfer for {self.sender_email} to {recipients} with settings {settings}")
         transfer = CryptshareTransfer(

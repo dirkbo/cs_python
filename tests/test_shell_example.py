@@ -3,10 +3,10 @@ import unittest
 from datetime import datetime, timedelta
 
 from dotenv import load_dotenv
+from test_cryptshare import TestCryptshareValidators
 
 from cryptshare import CryptshareValidators
 from examples.shell_example.helpers import ExtendedCryptshareValidators
-from test_cryptshare import TestCryptshareValidators
 
 
 class TestExtendedCryptshareValidators(TestCryptshareValidators):
@@ -33,9 +33,7 @@ class TestExtendedCryptshareValidators(TestCryptshareValidators):
     def test_clean_expiration(self):
         now = datetime.now()
         default_days = 2
-        self.assertEqual(
-            self.cls.clean_expiration("tomorrow").date(), (now + timedelta(days=1)).date()
-        )
+        self.assertEqual(self.cls.clean_expiration("tomorrow").date(), (now + timedelta(days=1)).date())
         self.assertEqual(self.cls.clean_expiration(now).date(), now.date())
         self.assertEqual(
             self.cls.clean_expiration("", default_days=default_days).date(),
@@ -49,34 +47,16 @@ class TestExtendedCryptshareValidators(TestCryptshareValidators):
         self.assertEqual(self.cls.clean_expiration("1d").date(), (now + timedelta(days=1)).date())
         self.assertEqual(self.cls.clean_expiration("1w").date(), (now + timedelta(weeks=1)).date())
         self.assertEqual(self.cls.clean_expiration("1m").date(), (now + timedelta(weeks=4)).date())
-        self.assertEqual(
-            self.cls.clean_expiration("2024-01-01").date(), datetime(2024, 1, 1).date()
-        )
-        self.assertEqual(
-            self.cls.clean_expiration("2024-01-01 ").date(), datetime(2024, 1, 1).date()
-        )
-        self.assertEqual(
-            self.cls.clean_expiration("2024-01-21T13:01").date(), datetime(2024, 1, 21).date()
-        )
+        self.assertEqual(self.cls.clean_expiration("2024-01-01").date(), datetime(2024, 1, 1).date())
+        self.assertEqual(self.cls.clean_expiration("2024-01-01 ").date(), datetime(2024, 1, 1).date())
+        self.assertEqual(self.cls.clean_expiration("2024-01-21T13:01").date(), datetime(2024, 1, 21).date())
         self.assertEqual(self.cls.clean_expiration("1.1.2024").date(), datetime(2024, 1, 1).date())
-        self.assertEqual(
-            self.cls.clean_expiration("01.01.2024").date(), datetime(2024, 1, 1).date()
-        )
-        self.assertEqual(
-            self.cls.clean_expiration("1.1.2024 12:12:12").date(), datetime(2024, 1, 1).date()
-        )
-        self.assertEqual(
-            self.cls.clean_expiration("1.1.2024T12:12:12+0200").date(), datetime(2024, 1, 1).date()
-        )
-        self.assertEqual(
-            self.cls.clean_expiration("1.1.2024T12:12:12 +0200").date(), datetime(2024, 1, 1).date()
-        )
-        self.assertEqual(
-            self.cls.clean_expiration("01.01.2024 12:12:12").date(), datetime(2024, 1, 1).date()
-        )
-        self.assertEqual(
-            self.cls.clean_expiration("1.1.2024 12:12:12+0000").date(), datetime(2024, 1, 1).date()
-        )
+        self.assertEqual(self.cls.clean_expiration("01.01.2024").date(), datetime(2024, 1, 1).date())
+        self.assertEqual(self.cls.clean_expiration("1.1.2024 12:12:12").date(), datetime(2024, 1, 1).date())
+        self.assertEqual(self.cls.clean_expiration("1.1.2024T12:12:12+0200").date(), datetime(2024, 1, 1).date())
+        self.assertEqual(self.cls.clean_expiration("1.1.2024T12:12:12 +0200").date(), datetime(2024, 1, 1).date())
+        self.assertEqual(self.cls.clean_expiration("01.01.2024 12:12:12").date(), datetime(2024, 1, 1).date())
+        self.assertEqual(self.cls.clean_expiration("1.1.2024 12:12:12+0000").date(), datetime(2024, 1, 1).date())
         self.assertEqual(
             self.cls.clean_expiration("2024-01-01T08:01:55+0200").date(),
             datetime(2024, 1, 1).date(),
