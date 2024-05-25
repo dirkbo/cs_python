@@ -7,7 +7,7 @@ venv2
 *.pyc
 .env
 *.sqlite3
-vmanage.py
+.coverage
 credentials.py
 client_store.json
 client_store_*.json
