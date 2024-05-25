@@ -1,4 +1,5 @@
 tqdm
 twilio
 questionary
+python-dateutil
 python-dotenv
