@@ -14,15 +14,15 @@ currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentfram
 parentdir = os.path.dirname(os.path.dirname(currentdir))
 sys.path.insert(0, parentdir)
 
-from helpers import ExtendedCryptshareValidators
 from receive_transfer import receive_transfer
 from receive_transfer_interactive import receive_transfer_interactive
 from send_transfer import send_transfer
 from send_transfer_interactive import send_transfer_interactive
+from status_transfer import status_transfer
 from status_transfer_interactive import status_transfer_interactive
-from transfer_status import transfer_status
 
 from cryptshare import CryptshareClient
+from examples.shell_example.helpers import ExtendedCryptshareValidators
 
 logger = logging.getLogger(__name__)
 LOGGING_CONFIG_FILE = "examples/shell_example/logging_config.json"
@@ -47,7 +47,7 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("-s", "--server", help="Cryptshare Server URL", required=requires_server)
     # Receive a Transfer
-    parser.add_argument("-t", "--transfer", help="Transfer ID of the Transfer to RECEIVE", required=False)
+    parser.add_argument("--transfer_id", help="Transfer ID of the Transfer ID to RECEIVE a Transfer", required=False)
     parser.add_argument("-p", "--password", help="Password of the Transfer to RECEIVE", required=False)
     parser.add_argument(
         "--zip", action="store_true", default=False, help="RECEIVE the Transfer as a .zip-File.", required=False
@@ -73,7 +73,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--expiration", help="Expiration of the Transfer to SEND.")
     parser.add_argument("--sms_recipient", help="Recipient phone number to SEND SMS Password to.", action="append")
     # Check status of a sent Transfer
-    parser.add_argument("--status", help="Tracking ID of the Transfer to check STATUS of.", required=False)
+    parser.add_argument("--tracking_id", help="Tracking ID of the Transfer to check STATUS of", required=False)
     args = parser.parse_args()
     return args
 
@@ -133,7 +133,7 @@ def main() -> None:
         )
         return
     elif inputs.mode == "receive":
-        recipient_transfer_id = inputs.transfer
+        recipient_transfer_id = inputs.transfer_id
         password = inputs.password
         save_path = recipient_transfer_id
         receive_transfer(
@@ -148,7 +148,7 @@ def main() -> None:
     elif inputs.mode == "status":
         client = CryptshareClient(default_server_url)
         client.set_sender(default_sender_email, default_sender_name, default_sender_phone)
-        transfer_status(client, inputs.transfer)
+        status_transfer(client, inputs.tracking_id)
         return
     while True:
         mode = interactive_user_choice()

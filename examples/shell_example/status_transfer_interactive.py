@@ -3,7 +3,7 @@ from helpers import ExtendedCryptshareValidators
 
 from cryptshare import CryptshareClient
 from examples.shell_example.helpers import QuestionaryCryptshareSender
-from examples.shell_example.transfer_status import transfer_status
+from examples.shell_example.status_transfer import status_transfer
 
 
 def status_transfer_interactive(default_server_url, default_sender_email):
@@ -33,4 +33,4 @@ def status_transfer_interactive(default_server_url, default_sender_email):
 
     sender = QuestionaryCryptshareSender(email=sender_email, name="REST-API Sender", phone="0")
     sender.setup_and_verify_sender(client)
-    transfer_status(client, transfer_transfer_id)
+    status_transfer(client, transfer_transfer_id)
