@@ -183,38 +183,69 @@ def send_transfer_interactive(
     show_generated_pasword = True
     is_valid_password = False
     human_password_rules = cryptshare_client.get_human_readable_password_rules()
+    transfer_policy_settings = transfer_policy.get("settings", dict())
+
+    print(transfer_policy_settings)
+    allow_manual_password = False
+    allow_generated_password = False
+    security_modes: list = transfer_policy_settings.get("securityModes", list())
+    for security_mode in security_modes:
+        if security_mode["name"] == "ONE_TIME_PASSWORD":
+            allow_manual_password = "MANUAL" in security_mode.get("config", dict()).get("allowedPasswordModes", list())
+            allow_generated_password = "GENERATED" in security_mode.get("config", dict()).get(
+                "allowedPasswordModes", list()
+            )
+
+    if not allow_manual_password and not allow_generated_password:
+        print("No Password mode allowed. Please contact your administrator.")
+        return
 
     transfer_security_mode = None
-    while not is_valid_password:
-        selection_message = "What is the Passwort the recipients will need to use to receive the transfer?"
-        selection_message += "\n Password rules:"
-        selection_message += "\n  * {}".format("\n  * ".join(human_password_rules))
-        selection_message += "\n (blank=Password will be generated)"
+    if allow_manual_password:
+        while not is_valid_password:
+            selection_message = "What is the Passwort the recipients will need to use to receive the transfer?"
+            selection_message += "\n Password rules:"
+            selection_message += "\n  * {}".format("\n  * ".join(human_password_rules))
+            if allow_generated_password:
+                selection_message += "\n (blank=Password will be generated)"
 
-        transfer_password = questionary.password(selection_message).ask()
-        transfer_security_mode = CryptshareTransferSecurityMode(password=transfer_password, mode=SecurityModes.MANUAL)
+            transfer_password = questionary.password(selection_message).ask()
+            transfer_security_mode = CryptshareTransferSecurityMode(
+                password=transfer_password, mode=SecurityModes.MANUAL
+            )
 
-        if transfer_password == "" or transfer_password is None:
-            transfer_password = cryptshare_client.get_password().get("password")
-            if not show_generated_pasword:
-                print("Generated Password to receive Files will be sent via SMS.")
+            if transfer_password == "" or transfer_password is None and allow_generated_password:
+                transfer_password = cryptshare_client.get_password().get("password")
+                if not show_generated_pasword:
+                    print("Generated Password to receive Files will be sent via SMS.")
+                else:
+                    print(f"Generated Password to receive Files: {transfer_password}")
+                    if send_password_sms:
+                        print(
+                            "Number of phone numbers does not match number of email addresses. SMS might not be sent to all recipients."
+                        )
+                transfer_security_mode = CryptshareTransferSecurityMode(password=transfer_password)
+                is_valid_password = True
             else:
-                print(f"Generated Password to receive Files: {transfer_password}")
-                if send_password_sms:
-                    print(
-                        "Number of phone numbers does not match number of email addresses. SMS might not be sent to all recipients."
-                    )
-            transfer_security_mode = CryptshareTransferSecurityMode(password=transfer_password)
-            is_valid_password = True
-        else:
-            passwort_validated_response = cryptshare_client.validate_password(transfer_password)
-            is_valid_password = passwort_validated_response.get("valid", False)
-            if not is_valid_password:
-                print("Passwort is not valid.")
-                continue
+                passwort_validated_response = cryptshare_client.validate_password(transfer_password)
+                is_valid_password = passwort_validated_response.get("valid", False)
+                if not is_valid_password:
+                    print("Passwort is not valid.")
+                    continue
 
+                if send_password_sms:
+                    print("Password to receive Files will be sent via SMS.")
+    elif allow_generated_password:
+        transfer_password = cryptshare_client.get_password().get("password")
+        if not show_generated_pasword:
+            print("Generated Password to receive Files will be sent via SMS.")
+        else:
+            print(f"Generated Password to receive Files: {transfer_password}")
             if send_password_sms:
-                print("Password to receive Files will be sent via SMS.")
+                print(
+                    "Number of phone numbers does not match number of email addresses. SMS might not be sent to all recipients."
+                )
+        transfer_security_mode = CryptshareTransferSecurityMode(password=transfer_password)
 
     # Transfer Session is open loop. Options: Add/Remove Files, Change expiration date, send Transfer, abort
     do_send = False
@@ -251,7 +282,6 @@ def send_transfer_interactive(
 
     transfer.start_transfer_session()
     transfer.update_transfer_settings(settings)
-    transfer_policy_settings = transfer_policy.get("settings", dict())
 
     while do_send is False and do_abort is False:
         number_of_files = len(files_list)
