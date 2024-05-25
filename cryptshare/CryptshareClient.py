@@ -164,6 +164,42 @@ class CryptshareClient(CryptshareApiRequests):
             return True
         return False
 
+    def get_language_packs(self) -> list:
+        # "GET https://<your-url>/api/products/<product-key>/language-packs"
+        path = self.api_path("products") + "api.rest/language-packs"
+        logger.info(f"Getting language packs from {path}")
+        r = self._request(
+            "GET",
+            path,
+            verify=self.ssl_verify,
+            headers=self.header.request_header,
+        )
+        return r
+
+    def get_terms_of_use(self) -> dict:
+        # "GET https://<your-url>/api/products/<product-key>/terms-of-use"
+        path = self.api_path("products") + "api.rest/legal/terms-of-use"
+        logger.info(f"Getting terms of use from {path}")
+        r = self._request(
+            "GET",
+            path,
+            verify=self.ssl_verify,
+            headers=self.header.request_header,
+        )
+        return r
+
+    def get_imprint(self) -> dict:
+        # "GET https://<your-url>/api/products/<product-key>/imprint"
+        path = self.api_path("products") + "api.rest/legal/imprint"
+        logger.info(f"Getting imprint from {path}")
+        r = self._request(
+            "GET",
+            path,
+            verify=self.ssl_verify,
+            headers=self.header.request_header,
+        )
+        return r
+
     def start_transfer(self, recipients, settings: CryptshareTransferSettings) -> CryptshareTransfer:
         logger.debug(f"Starting transfer for {self.sender_email} to {recipients} with settings {settings}")
         transfer = CryptshareTransfer(
@@ -231,6 +267,61 @@ class CryptshareClient(CryptshareApiRequests):
             headers=self.header.request_header,
         )
         return r
+
+    def get_human_readable_password_rules(self, password_rules: list = None) -> list:
+        """Returning human readable password rules from password rules list
+        If whitespaces are forbidden for whitespacesDeclined
+        If alphabetical sequences like "abc" are forbidden for	alphabeticalSequenceDeclined
+        If numeric sequences like "123" are forbidden	numericSequenceDeclined
+        If sequences found on keyboards are forbidden like "qwerty"	keyboardSequenceDeclined
+        If the blocklisted characters are forbidden. (Manually configurable by the Cryptshare Server administrator)	blacklistedCharactersDeclined
+        If directly repeated characters are forbidden like (Flussschifffahrt with sss and fff)	repeatedCharactersDeclined
+        If common words that can be found in dictionaries are forbidden.	dictionaryWordsDeclined
+        The minimum length of the password	minimumLengthRequired
+        The maximum length of the password	maximumLengthRequired
+        If letters are required	lettersRequired
+        If special characters like !"§$ are required	specialCharactersRequired
+        If upper case characters are required	upperCaseRequired
+        If lower case characters are required	lowerCaseRequired
+        If digits are required.
+
+        :param password_rules: list of password rules from the server, if None, password rules are fetched from the server
+        :return:
+        """
+        if password_rules is None:
+            password_rules = self.get_password_rules()
+
+        human_password_rules = []
+        for rule in password_rules:
+            if rule["name"] == "whitespacesDeclined":
+                human_password_rules.append("No whitespaces allowed")
+            if rule["name"] == "minimumLengthRequired":
+                human_password_rules.append(f"Minimal length: {rule['details']['length']}")
+            if rule["name"] == "maximumLengthRequired":
+                human_password_rules.append(f"Maximal length: {rule['details']['length']}")
+            if rule["name"] == "specialCharactersRequired":
+                human_password_rules.append("Special characters are required")
+            if rule["name"] == "upperCaseRequired":
+                human_password_rules.append("Uppercase characters are required")
+            if rule["name"] == "lowerCaseRequired":
+                human_password_rules.append("Lowercase characters are required")
+            if rule["name"] == "lettersRequired":
+                human_password_rules.append("Letters are required")
+            if rule["name"] == "digitsRequired":
+                human_password_rules.append("Digits are required")
+            if rule["name"] == "alphabeticalSequenceDeclined":
+                human_password_rules.append("No alphabetical sequences allowed")
+            if rule["name"] == "numericSequenceDeclined":
+                human_password_rules.append("No numeric sequences allowed")
+            if rule["name"] == "keyboardSequenceDeclined":
+                human_password_rules.append("No keyboard sequences allowed")
+            if rule["name"] == "blacklistedCharactersDeclined":
+                human_password_rules.append("No blacklisted characters allowed")
+            if rule["name"] == "repeatedCharactersDeclined":
+                human_password_rules.append("No repeated characters allowed")
+            if rule["name"] == "dictionaryWordsDeclined":
+                human_password_rules.append("No dictionary words allowed")
+        return human_password_rules
 
     def get_transfers(self) -> dict:
         path = self.api_path("users") + self.sender_email + "/transfers"

@@ -53,7 +53,7 @@ class CryptshareTransferSettings:
         self.other_settings = kwargs
 
     @staticmethod
-    def format_expiration_date(expiration_date) -> str:
+    def format_expiration_date(expiration_date: datetime) -> str:
         formatted_expiration_date = expiration_date.astimezone().strftime("%Y-%m-%dT%H:%M:%S%z")
         expiration_date = formatted_expiration_date[:-2] + ":" + formatted_expiration_date[-2:]
         return expiration_date

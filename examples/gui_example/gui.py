@@ -1,26 +1,31 @@
 import datetime
 import inspect
+import json
+import logging
+import logging.config
 import os
 import sys
 
 import PySimpleGUI as sg
-
-import cryptshare.CryptshareClient as CryptshareClient
-import cryptshare.CryptshareNotificationMessage as NotificationMessage
-import cryptshare.CryptshareTransferSettings as Settings
-from cryptshare.CryptshareTransferSecurityMode import (
-    CryptshareTransferSecurityMode,
-    SecurityModes,
-)
+from dateutil import parser as date_parser
 
 # To work from exapmples folder, parentfolder is added to path
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 parentdir = os.path.dirname(os.path.dirname(currentdir))
 sys.path.insert(0, parentdir)
 
+from cryptshare.CryptshareClient import CryptshareClient
+from cryptshare.CryptshareNotificationMessage import (
+    CryptshareNotificationMessage as NotificationMessage,
+)
+from cryptshare.CryptshareTransferSecurityMode import CryptshareTransferSecurityMode
+from cryptshare.CryptshareTransferSettings import CryptshareTransferSettings
+
+logger = logging.getLogger(__name__)
+LOGGING_CONFIG_FILE = "examples/gui_example/logging_config.json"
 
 # Please change these parameters accordingly to your setup
-cryptshare_server_url = os.getenv("CRYPTSHARE_SERVER_URL", "https://beta.cryptshare.com")
+cryptshare_server_url = os.getenv("CRYPTSHARE_SERVER", "https://beta.cryptshare.com")
 transfer_password = "Thunderstruck!"
 origin = os.getenv("CRYPTSHARE_CORS_ORIGIN", "https://localhost")
 
@@ -240,9 +245,16 @@ def display_transfer_information(transfer_settings):
             return True
 
 
-def main():
+def setup_logging() -> None:
+    with open(LOGGING_CONFIG_FILE, "r") as f:
+        config = json.load(f)
+        logging.config.dictConfig(config)
+
+
+def main() -> None:
+    setup_logging()
     #  Set server URL
-    cryptshare_client = CryptshareClient(server=cryptshare_server_url, ssl_verify=False)
+    cryptshare_client = CryptshareClient(server=cryptshare_server_url)
 
     #  Reads existing verifications from the 'store' file if any
     cryptshare_client.read_client_store()
@@ -277,9 +289,10 @@ def main():
     # passwort_validated_response = cryptshare_client.validate_password("happyday123asd")
     # policy_response = cryptshare_client.get_policy(["python@domain.com"])
     #  Transfer definition
+    expiration_date = date_parser.parse(expiration_date)
     sender = cryptshare_client.sender
-    message = NotificationMessage.CryptshareNotificationMessage("test", "Test the REST")
-    settings = Settings.CryptshareTransferSettings(
+    message = NotificationMessage("test", "Test the REST")
+    settings = CryptshareTransferSettings(
         sender,
         expiration_date,
         message,
@@ -310,4 +323,5 @@ def main():
     print(post_transfer_info)
 
 
-main()
+if __name__ == "__main__":
+    main()
