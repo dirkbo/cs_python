@@ -15,11 +15,21 @@ class CryptshareNotificationMessage:
         if not language and (body or subject):
             self.detect_language()
 
-    def detect_language(self, default="en") -> None:
+    def detect_language(self, default="en", supported_languages: list[str] = None) -> None:
+        def get_supported_language(language: str) -> str:
+            if supported_languages and language in supported_languages:
+                return language
+            logging.debug(f"Language {language} not supported. Using default {default}")
+            return default
+
         logger.debug("Detecting language from Notification Message subject and body")
         # Implement language detection here
         use_text_for_detection = f"{self.body} {self.subject}"
         self.language = default.lower()
+
+        if len(use_text_for_detection) < 10:
+            logger.debug(f"Using default {default}. Text too short for language detection")
+            return
 
         try:
             probs = detect_langs(use_text_for_detection)
@@ -47,7 +57,7 @@ class CryptshareNotificationMessage:
 
             if probability > 0.8:
                 logger.info(f"Detected recipient language: {lang.lower()} Probability: {probability}")
-                self.language = lang.lower()
+                self.language = get_supported_language(lang.lower())
                 return
             logger.debug(
                 f"Using default {default}. Recipient language detection probability too low: {lang.lower()} {probability}"

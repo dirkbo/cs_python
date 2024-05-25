@@ -120,6 +120,39 @@ class CryptshareValidators:
         return False
 
     @staticmethod
+    def is_valid_transfer_subject(subject: str) -> bool:
+        """Checks if the transfer subject is valid
+        Subject is invalid, if it contains one of: ,<,>,\\,#,[,],{,},%,$,~
+        :param subject: The transfer subject to validate
+        :return: True if the transfer subject is valid, False otherwise
+        """
+        if "," in subject:
+            return False
+        if "<" in subject:
+            return False
+        if ">" in subject:
+            return False
+        if "\\" in subject:
+            return False
+        if "#" in subject:
+            return False
+        if "[" in subject:
+            return False
+        if "]" in subject:
+            return False
+        if "{" in subject:
+            return False
+        if "}" in subject:
+            return False
+        if "%" in subject:
+            return False
+        if "$" in subject:
+            return False
+        if "~" in subject:
+            return False
+        return True
+
+    @staticmethod
     def is_valid_verification_code(verification_code: str) -> bool:
         """Checks if the verification code is valid
         :param verification_code: The verification code to validate

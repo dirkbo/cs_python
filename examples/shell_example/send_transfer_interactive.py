@@ -251,6 +251,7 @@ def send_transfer_interactive(
 
     transfer.start_transfer_session()
     transfer.update_transfer_settings(settings)
+    transfer_policy_settings = transfer_policy.get("settings", dict())
 
     while do_send is False and do_abort is False:
         number_of_files = len(files_list)
@@ -275,22 +276,29 @@ def send_transfer_interactive(
         if message != "":
             selection_message += f"\n Notification message: {message}"
         selection_message += "\nWhat do you want to do?"
+
+        selection_choices = [
+            questionary.Choice(title="Add a file", value="AddFile"),
+            questionary.Choice(title="Remove a file", value="RemoveFile"),
+            questionary.Choice(title="Change expiration date", value="ChangeExpiration"),
+        ]
+        if transfer_policy_settings.get("recipientNotificationEditable", False):
+            selection_choices.append(questionary.Choice(title="Set custom Notification subject", value="SetSubject"))
+            selection_choices.append(questionary.Choice(title="Set custom Notification message", value="SetMessage"))
+
+        selection_choices.append(
+            questionary.Choice(
+                title=f"Upload {number_of_files} files and send Transfer to {number_of_recipients} recipients",
+                value="SendTransfer",
+                disabled=can_send_disabled,
+                shortcut_key="s",
+            )
+        )
+        selection_choices.append(questionary.Choice(title="Abort", value="AbortTransfer", shortcut_key="q"))
+
         session_option = questionary.select(
             selection_message,
-            choices=[
-                questionary.Choice(title="Add a file", value="AddFile"),
-                questionary.Choice(title="Remove a file", value="RemoveFile"),
-                questionary.Choice(title="Change expiration date", value="ChangeExpiration"),
-                questionary.Choice(title="Set custom Notification subject", value="SetSubject"),
-                questionary.Choice(title="Set custom Notification message", value="SetMessage"),
-                questionary.Choice(
-                    title=f"Upload {number_of_files} files and send Transfer to {number_of_recipients} recipients",
-                    value="SendTransfer",
-                    disabled=can_send_disabled,
-                    shortcut_key="s",
-                ),
-                questionary.Choice(title="Abort", value="AbortTransfer", shortcut_key="q"),
-            ],
+            choices=selection_choices,
             use_shortcuts=True,
         ).ask()
         if session_option == "SendTransfer":
@@ -336,16 +344,28 @@ def send_transfer_interactive(
                 except ValueError:
                     pass
         if session_option == "ChangeExpiration":
-            transfer_expiration = questionary.text(
-                "When should the transfer expire?\n",
-                default=f"{transfer_expiration}",
-                validate=ShellCryptshareValidators.is_valid_expiration,
-            ).ask()
-            if transfer_expiration == "":
-                transfer_expiration = "2d"
-            print(f"Transfer expiration: {transfer_expiration}")
-            expiration_date = ShellCryptshareValidators.clean_expiration(transfer_expiration)
-            # ToDo: Validate against server policy
+            valid_transfer_expiration = False
+            while not valid_transfer_expiration:
+                transfer_expiration = questionary.text(
+                    "When should the transfer expire? (maximum {} days)\n".format(
+                        transfer_policy_settings.get("maxRetentionPeriod")
+                    ),
+                    default=f"{transfer_expiration}",
+                    validate=ShellCryptshareValidators.is_valid_expiration,
+                ).ask()
+                if transfer_expiration == "":
+                    transfer_expiration = "2d"
+                print(f"Transfer expiration: {transfer_expiration}")
+                expiration_date = ShellCryptshareValidators.clean_expiration(transfer_expiration)
+                print(transfer_policy_settings)
+                if expiration_date <= datetime.now() + timedelta(hours=23, minutes=59):
+                    print("Expiration date must be at least 1 day in the future.")
+                    continue
+                if expiration_date < datetime.now() + timedelta(
+                    days=transfer_policy_settings.get("maxRetentionPeriod")
+                ):
+                    valid_transfer_expiration = True
+
         if session_option == "SetMessage":
             message = questionary.text(
                 "What is the Notification message of the transfer? (blank=default Cryptshare Notification message)\n"
@@ -353,7 +373,8 @@ def send_transfer_interactive(
             notification = CryptshareNotificationMessage(message, subject)
         if session_option == "SetSubject":
             subject = questionary.text(
-                "What is the subject of the transfer? (blank=default Cryptshare subject)\n"
+                "What is the subject of the transfer? (blank=default Cryptshare subject)\n",
+                validate=ShellCryptshareValidators.is_valid_transfer_subject,
             ).ask()
             notification = CryptshareNotificationMessage(message, subject)
         settings = CryptshareTransferSettings(

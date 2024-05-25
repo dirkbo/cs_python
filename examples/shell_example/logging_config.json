@@ -15,7 +15,7 @@
     "loggers": {
         "": {"handlers": ["default"], "level": "WARNING", "propagate": false},
         "cryptshare": {"handlers": ["default"], "level": "WARNING", "propagate": false},
-        "cryptshare.NotificationMessage": {"handlers": ["default"], "level": "WARNING", "propagate": false},
+        "cryptshare.CryptshareNotificationMessage": {"handlers": ["default"], "level": "WARNING", "propagate": false},
         "cryptshare.CryptshareApiRequests": {"handlers": ["default"], "level": "WARNING", "propagate": false},
         "__main__": {"handlers": ["default"], "level": "WARNING", "propagate": false}
     }
