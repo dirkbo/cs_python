@@ -69,6 +69,7 @@ def send_transfer_interactive(
     cc_list = []
     bcc_list = []
 
+    transfer_policy = None
     while not do_continue:
         recipients = ""
         cc = ""
@@ -76,8 +77,16 @@ def send_transfer_interactive(
         new_recipients_list = recipients_list.copy()
         new_cc_list = cc_list.copy()
         new_bcc_list = bcc_list.copy()
+        selection_message = "Recipients for your Transfer:"
+        if new_recipients_list or (not new_cc_list and not new_bcc_list):
+            selection_message += "\n To: {}".format(", ".join(new_recipients_list))
+        if new_cc_list:
+            selection_message += "\n CC: {}".format(", ".join(new_cc_list))
+        if new_bcc_list:
+            selection_message += "\n BCC: {}".format(", ".join(new_bcc_list))
+        selection_message += "\nWhat do you want to do?"
         recipient_selection = questionary.select(
-            f"Recipients for your Transfer:\n To: {new_recipients_list}\n CC: {new_cc_list}\n BCC: {new_bcc_list}\n",
+            selection_message,
             choices=[
                 questionary.Choice(title="Add To Recipient", value="AddTo"),
                 questionary.Choice(title="Add CC Recipient", value="AddCC"),
@@ -151,11 +160,11 @@ def send_transfer_interactive(
             continue
         disallow_remove = False
 
-        policy_response = cryptshare_client.get_policy(new_all_recipients)
-        valid_policy = policy_response.get("allowed")
+        transfer_policy = cryptshare_client.get_policy(new_all_recipients)
+        valid_policy = transfer_policy.get("allowed")
         if not valid_policy:
             print("Policy does not allow adding these recipients!")
-            logger.debug(f"Policy response: {policy_response}")
+            logger.debug(f"Policy response: {transfer_policy}")
             recipient_policy_ok = False
             continue
         else:
@@ -169,42 +178,51 @@ def send_transfer_interactive(
         if recipient_selection == "Continue" and recipient_policy_ok is True and disallow_continue is False:
             do_continue = True
 
-    transfer_password = questionary.password(
-        "What is the password for the transfer? (blank=Password will be generated)\n"
-    ).ask()
-
+    #  Password for transfer
     send_password_sms = False
     show_generated_pasword = True
-    # ToDo: show password rules to user, when asking for password
-    transfer_security_mode = CryptshareTransferSecurityMode(password=transfer_password, mode=SecurityModes.MANUAL)
-    if transfer_password == "" or transfer_password is None:
-        transfer_password = cryptshare_client.get_password().get("password")
-        if not show_generated_pasword:
-            print("Generated Password to receive Files will be sent via SMS.")
+    is_valid_password = False
+    human_password_rules = cryptshare_client.get_human_readable_password_rules()
+
+    transfer_security_mode = None
+    while not is_valid_password:
+        selection_message = "What is the Passwort the recipients will need to use to receive the transfer?"
+        selection_message += "\n Password rules:"
+        selection_message += "\n  * {}".format("\n  * ".join(human_password_rules))
+        selection_message += "\n (blank=Password will be generated)"
+
+        transfer_password = questionary.password(selection_message).ask()
+        transfer_security_mode = CryptshareTransferSecurityMode(password=transfer_password, mode=SecurityModes.MANUAL)
+
+        if transfer_password == "" or transfer_password is None:
+            transfer_password = cryptshare_client.get_password().get("password")
+            if not show_generated_pasword:
+                print("Generated Password to receive Files will be sent via SMS.")
+            else:
+                print(f"Generated Password to receive Files: {transfer_password}")
+                if send_password_sms:
+                    print(
+                        "Number of phone numbers does not match number of email addresses. SMS might not be sent to all recipients."
+                    )
+            transfer_security_mode = CryptshareTransferSecurityMode(password=transfer_password)
+            is_valid_password = True
         else:
-            print(f"Generated Password to receive Files: {transfer_password}")
+            passwort_validated_response = cryptshare_client.validate_password(transfer_password)
+            is_valid_password = passwort_validated_response.get("valid", False)
+            if not is_valid_password:
+                print("Passwort is not valid.")
+                continue
+
             if send_password_sms:
-                print(
-                    "Number of phone numbers does not match number of email addresses. SMS might not be sent to all recipients."
-                )
-        transfer_security_mode = CryptshareTransferSecurityMode(password=transfer_password)
-    else:
-        passwort_validated_response = cryptshare_client.validate_password(transfer_password)
-        valid_password = passwort_validated_response.get("valid")
-        if not valid_password:
-            print("Passwort is not valid.")
-            password_rules = cryptshare_client.get_password_rules()
-            logger.debug(f"Passwort rules:\n{password_rules}")
-            return
-        if send_password_sms:
-            print("Password to receive Files will be sent via SMS.")
+                print("Password to receive Files will be sent via SMS.")
 
     # Transfer Session is open loop. Options: Add/Remove Files, Change expiration date, send Transfer, abort
     do_send = False
     can_send_disabled = "No Files added"
     do_abort = False
-    transfer_expiration = "5d"
-    expiration_date = datetime.now() + timedelta(days=5)
+    default_transfer_expiration = "2d"
+    transfer_expiration = default_transfer_expiration
+    expiration_date = ExtendedCryptshareValidators.clean_expiration(default_transfer_expiration)
     subject = ""
     message = ""
     files_list = []
@@ -241,19 +259,30 @@ def send_transfer_interactive(
             can_send_disabled = False
         else:
             can_send_disabled = "Add at least 1 files to send a Transfer."
+        selection_message = "Transfer Session is open."
+        if recipients_list:
+            selection_message += "\n To: {}".format(", ".join(recipients_list))
+        if cc_list:
+            selection_message += "\n CC: {}".format(", ".join(cc_list))
+        if bcc_list:
+            selection_message += "\n BCC: {}".format(", ".join(bcc_list))
+        if files_list:
+            selection_message += "\n Files:{}".format(", ".join(files_list))
+        if transfer_expiration != default_transfer_expiration:
+            selection_message += f"\n Transfer expiration: {transfer_expiration}"
+        if subject != "":
+            selection_message += f"\n Notification subject: {subject}"
+        if message != "":
+            selection_message += f"\n Notification message: {message}"
+        selection_message += "\nWhat do you want to do?"
         session_option = questionary.select(
-            f"Transfer Session is open. What do you want to do?\n"
-            f" To: {recipients_list}\n"
-            f" CC: {cc_list}\n"
-            f" BCC: {bcc_list}\n"
-            f" Files:{files_list}\n"
-            f" Notification subject: {subject}\n"
-            f" Notification message: {message}\n",
+            selection_message,
             choices=[
                 questionary.Choice(title="Add a file", value="AddFile"),
                 questionary.Choice(title="Remove a file", value="RemoveFile"),
-                questionary.Choice(title=f"Change expiration date ({transfer_expiration})", value="ChangeExpiration"),
-                questionary.Choice(title="Set custom Notification message and subject", value="SetMessage"),
+                questionary.Choice(title="Change expiration date", value="ChangeExpiration"),
+                questionary.Choice(title="Set custom Notification subject", value="SetSubject"),
+                questionary.Choice(title="Set custom Notification message", value="SetMessage"),
                 questionary.Choice(
                     title=f"Upload {number_of_files} files and send Transfer to {number_of_recipients} recipients",
                     value="SendTransfer",
@@ -316,12 +345,15 @@ def send_transfer_interactive(
                 transfer_expiration = "2d"
             print(f"Transfer expiration: {transfer_expiration}")
             expiration_date = ExtendedCryptshareValidators.clean_expiration(transfer_expiration)
+            # ToDo: Validate against server policy
         if session_option == "SetMessage":
-            subject = questionary.text(
-                "What is the subject of the transfer? (blank=default Cryptshare subject)\n"
-            ).ask()
             message = questionary.text(
                 "What is the Notification message of the transfer? (blank=default Cryptshare Notification message)\n"
+            ).ask()
+            notification = CryptshareNotificationMessage(message, subject)
+        if session_option == "SetSubject":
+            subject = questionary.text(
+                "What is the subject of the transfer? (blank=default Cryptshare subject)\n"
             ).ask()
             notification = CryptshareNotificationMessage(message, subject)
         settings = CryptshareTransferSettings(
