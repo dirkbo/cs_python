@@ -106,11 +106,10 @@ def send_transfer(
         if send_password_sms:
             print("Password to receive Files will be sent via SMS.")
 
-    policy_response = cryptshare_client.get_policy(all_recipients)
-    valid_policy = policy_response.get("allowed")
-    if not valid_policy:
+    transfer_policy = cryptshare_client.get_policy(all_recipients)
+    if not transfer_policy.is_allowed:
         print("Policy not valid.")
-        logger.debug(f"Policy response: {policy_response}")
+        logger.debug(f"Policy response: {transfer_policy}")
         return
 
     #  Transfer definition

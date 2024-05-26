@@ -11,6 +11,7 @@ from cryptshare.CryptshareHeader import CryptshareHeader
 from cryptshare.CryptshareNotificationMessage import CryptshareNotificationMessage
 from cryptshare.CryptshareSender import CryptshareSender
 from cryptshare.CryptshareTransfer import CryptshareTransfer
+from cryptshare.CryptshareTransferPolicy import CryptshareTransferPolicy
 from cryptshare.CryptshareTransferSecurityMode import (
     CryptshareTransferSecurityMode,
     SecurityModes,
@@ -357,7 +358,7 @@ class CryptshareClient(CryptshareApiRequests):
         )
         return r
 
-    def get_policy(self, recipients):
+    def get_policy(self, recipients) -> CryptshareTransferPolicy:
         path = self.api_path("users") + self.sender_email + "/transfer-policy"
         logger.info(f"Getting policy for {self.sender_email} and  {recipients} from {path}")
         r = self._request(
@@ -367,7 +368,8 @@ class CryptshareClient(CryptshareApiRequests):
             headers=self.header.extra_header({"Content-Type": "application/json"}),
             json={"recipients": recipients},
         )
-        return r
+        p = CryptshareTransferPolicy(r)
+        return p
 
     def download_transfer(self, transfer_id, password) -> CryptshareDownload:
         logger.debug(f"Downloading transfer {transfer_id} from {self._server}")
@@ -466,11 +468,10 @@ class CryptshareClient(CryptshareApiRequests):
                 logger.debug(f"Passwort rules:\n{password_rules}")
                 return
 
-        policy_response = self.get_policy(all_recipients)
-        valid_policy = policy_response.get("allowed", False)
-        if not valid_policy:
+        transfer_policy = self.get_policy(all_recipients)
+        if not transfer_policy.is_allowed:
             print("Policy not valid.")
-            logger.debug(f"Policy response: {policy_response}")
+            logger.debug(f"Policy response: {transfer_policy}")
             return
 
         #  Transfer definition

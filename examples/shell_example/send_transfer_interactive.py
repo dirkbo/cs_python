@@ -161,8 +161,7 @@ def send_transfer_interactive(
         disallow_remove = False
 
         transfer_policy = cryptshare_client.get_policy(new_all_recipients)
-        valid_policy = transfer_policy.get("allowed")
-        if not valid_policy:
+        if not transfer_policy.is_allowed:
             print("Policy does not allow adding these recipients!")
             logger.debug(f"Policy response: {transfer_policy}")
             recipient_policy_ok = False
@@ -183,25 +182,39 @@ def send_transfer_interactive(
     show_generated_pasword = True
     is_valid_password = False
     human_password_rules = cryptshare_client.get_human_readable_password_rules()
-    transfer_policy_settings = transfer_policy.get("settings", dict())
+    transfer_policy_settings = transfer_policy.get_settings()
 
-    print(transfer_policy_settings)
-    allow_manual_password = False
-    allow_generated_password = False
-    security_modes: list = transfer_policy_settings.get("securityModes", list())
-    for security_mode in security_modes:
-        if security_mode["name"] == "ONE_TIME_PASSWORD":
-            allow_manual_password = "MANUAL" in security_mode.get("config", dict()).get("allowedPasswordModes", list())
-            allow_generated_password = "GENERATED" in security_mode.get("config", dict()).get(
-                "allowedPasswordModes", list()
-            )
+    security_modes = transfer_policy.get_allowed_security_modes()
+    allow_manual_password = SecurityModes.MANUAL in security_modes
+    allow_generated_password = SecurityModes.GENERATED in security_modes
+    allow_no_password = SecurityModes.NONE in security_modes
 
-    if not allow_manual_password and not allow_generated_password:
-        print("No Password mode allowed. Please contact your administrator.")
+    if not allow_manual_password and not allow_generated_password and not allow_no_password:
+        print("No supported Password mode allowed. Please contact your administrator.")
         return
 
+    # Select Security Mode
+    seleced_security_mode = questionary.select(
+        "Which Security mode do you want to use?",
+        choices=[
+            questionary.Choice(
+                title="Set a Password",
+                value="Manual",
+                disabled=None if allow_manual_password else "Not allowed by policy",
+            ),
+            questionary.Choice(
+                title="Generate a Password",
+                value="Generated",
+                disabled=None if allow_generated_password else "Not allowed by policy",
+            ),
+            questionary.Choice(
+                title="No Password", value="None", disabled=None if allow_no_password else "Not allowed by policy"
+            ),
+        ],
+    ).ask()
+
     transfer_security_mode = None
-    if allow_manual_password:
+    if seleced_security_mode == "Manual" and allow_manual_password:
         while not is_valid_password:
             selection_message = "What is the Passwort the recipients will need to use to receive the transfer?"
             selection_message += "\n Password rules:"
@@ -235,7 +248,8 @@ def send_transfer_interactive(
 
                 if send_password_sms:
                     print("Password to receive Files will be sent via SMS.")
-    elif allow_generated_password:
+
+    if seleced_security_mode == "Generated" and allow_generated_password:
         transfer_password = cryptshare_client.get_password().get("password")
         if not show_generated_pasword:
             print("Generated Password to receive Files will be sent via SMS.")
@@ -246,6 +260,9 @@ def send_transfer_interactive(
                     "Number of phone numbers does not match number of email addresses. SMS might not be sent to all recipients."
                 )
         transfer_security_mode = CryptshareTransferSecurityMode(password=transfer_password)
+
+    if seleced_security_mode == "None" and allow_no_password:
+        transfer_security_mode = CryptshareTransferSecurityMode(mode=SecurityModes.NONE)
 
     # Transfer Session is open loop. Options: Add/Remove Files, Change expiration date, send Transfer, abort
     do_send = False
