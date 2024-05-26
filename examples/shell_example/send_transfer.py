@@ -12,7 +12,7 @@ from cryptshare import CryptshareClient
 from cryptshare.CryptshareNotificationMessage import CryptshareNotificationMessage
 from cryptshare.CryptshareTransferSecurityMode import (
     CryptshareTransferSecurityMode,
-    SecurityModes,
+    OneTimePaswordSecurityModes,
 )
 from cryptshare.CryptshareTransferSettings import CryptshareTransferSettings
 
@@ -83,8 +83,12 @@ def send_transfer(
             show_generated_pasword = True
 
     # ToDo: show password rules to user, when asking for password
-    transfer_security_mode = CryptshareTransferSecurityMode(password=transfer_password, mode=SecurityModes.MANUAL)
-    if transfer_password == "" or transfer_password is None:
+    transfer_security_mode = CryptshareTransferSecurityMode(
+        password=transfer_password, mode=OneTimePaswordSecurityModes.MANUAL
+    )
+    if transfer_password == "NO_PASSWORD_MODE":
+        transfer_security_mode = CryptshareTransferSecurityMode(mode=OneTimePaswordSecurityModes.NONE)
+    elif transfer_password == "" or transfer_password is None:
         transfer_password = cryptshare_client.get_password().get("password")
         if not show_generated_pasword:
             print("Generated Password to receive Files will be sent via SMS.")

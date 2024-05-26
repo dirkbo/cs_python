@@ -14,7 +14,7 @@ from cryptshare.CryptshareTransfer import CryptshareTransfer
 from cryptshare.CryptshareTransferPolicy import CryptshareTransferPolicy
 from cryptshare.CryptshareTransferSecurityMode import (
     CryptshareTransferSecurityMode,
-    SecurityModes,
+    OneTimePaswordSecurityModes,
 )
 from cryptshare.CryptshareTransferSettings import CryptshareTransferSettings
 from cryptshare.CryptshareValidators import CryptshareValidators
@@ -454,7 +454,9 @@ class CryptshareClient(CryptshareApiRequests):
             self._sender = sender
 
         # ToDo: show password rules to user, when asking for password
-        transfer_security_mode = CryptshareTransferSecurityMode(password=transfer_password, mode=SecurityModes.MANUAL)
+        transfer_security_mode = CryptshareTransferSecurityMode(
+            password=transfer_password, mode=OneTimePaswordSecurityModes.MANUAL
+        )
         if transfer_password == "" or transfer_password is None:
             transfer_password = self.get_password().get("password")
             print(f"Generated Password to receive Files: {transfer_password}")

@@ -1,6 +1,6 @@
 import logging
 
-from cryptshare.CryptshareTransferSecurityMode import SecurityModes
+from cryptshare.CryptshareTransferSecurityMode import OneTimePaswordSecurityModes
 
 logger = logging.getLogger(__name__)
 
@@ -11,7 +11,7 @@ class CryptshareTransferPolicy:
     def __init__(self, policy: dict = None):
         self._policy = policy
 
-    def get_allowed_security_modes(self) -> [SecurityModes, None]:
+    def get_allowed_security_modes(self) -> [OneTimePaswordSecurityModes, None]:
         """Returns the allowed security modes for the transfer"""
         security_modes: list = self.get_settings().get("securityModes", list())
         logger.debug(f"Security Modes raw: {security_modes}")
@@ -19,11 +19,11 @@ class CryptshareTransferPolicy:
         for security_mode in security_modes:
             if security_mode["name"] == "ONE_TIME_PASSWORD":
                 if "MANUAL" in security_mode.get("config", dict()).get("allowedPasswordModes", list()):
-                    modes.append(SecurityModes.MANUAL)
+                    modes.append(OneTimePaswordSecurityModes.MANUAL)
                 if "GENERATED" in security_mode.get("config", dict()).get("allowedPasswordModes", list()):
-                    modes.append(SecurityModes.GENERATED)
+                    modes.append(OneTimePaswordSecurityModes.GENERATED)
                 if "NONE" in security_mode.get("config", dict()).get("allowedPasswordModes", list()):
-                    modes.append(SecurityModes.NONE)
+                    modes.append(OneTimePaswordSecurityModes.NONE)
         logger.debug(f"Allowed Security Modes: {modes}")
         return modes
 
@@ -58,3 +58,35 @@ class CryptshareTransferPolicy:
 
     def __repr__(self):
         return str(self.policy)
+
+    @property
+    def maximum_total_size(self) -> int:
+        return self.get_settings().get("maxTotalSize", 0)
+
+    @property
+    def show_file_names_default(self) -> bool:
+        return self.get_settings().get("showFileNamesDefault", False)
+
+    @property
+    def show_file_names_changeable(self) -> bool:
+        return self.get_settings().get("showFileNamesChangeable", False)
+
+    @property
+    def show_zip_file_content_default(self) -> bool:
+        return self.get_settings().get("showZipFileContentDefault", False)
+
+    @property
+    def send_download_notifications_default(self) -> bool:
+        return self.get_settings().get("sendDownloadNotificationsDefault", False)
+
+    @property
+    def send_download_notifications_changeable(self) -> bool:
+        return self.get_settings().get("sendDownloadNotificationsChangeable", False)
+
+    @property
+    def confidential_message_allowed(self) -> bool:
+        return self.get_settings().get("confidentialMessageAllowed", False)
+
+    @property
+    def confidential_message_required(self) -> bool:
+        return self.get_settings().get("confidentialMessageRequired", False)

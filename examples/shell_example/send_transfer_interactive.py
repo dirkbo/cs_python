@@ -24,7 +24,7 @@ from cryptshare import CryptshareClient
 from cryptshare.CryptshareNotificationMessage import CryptshareNotificationMessage
 from cryptshare.CryptshareTransferSecurityMode import (
     CryptshareTransferSecurityMode,
-    SecurityModes,
+    OneTimePaswordSecurityModes,
 )
 from cryptshare.CryptshareTransferSettings import CryptshareTransferSettings
 
@@ -177,6 +177,9 @@ def send_transfer_interactive(
         if recipient_selection == "Continue" and recipient_policy_ok is True and disallow_continue is False:
             do_continue = True
 
+    # Transfer policy for the given sender and recipients
+    print(f"Transfer Policy:\n{transfer_policy}")
+
     #  Password for transfer
     send_password_sms = False
     show_generated_pasword = True
@@ -184,9 +187,11 @@ def send_transfer_interactive(
     human_password_rules = cryptshare_client.get_human_readable_password_rules()
 
     security_modes = transfer_policy.get_allowed_security_modes()
-    allow_manual_password = SecurityModes.MANUAL in security_modes
-    allow_generated_password = SecurityModes.GENERATED in security_modes
-    allow_no_password = SecurityModes.NONE in security_modes
+    allow_manual_password = OneTimePaswordSecurityModes.MANUAL in security_modes
+    allow_generated_password = OneTimePaswordSecurityModes.GENERATED in security_modes
+    allow_no_password = OneTimePaswordSecurityModes.NONE in security_modes
+
+    logger.info(f"Allowed Security Modes: {security_modes}")
 
     if not allow_manual_password and not allow_generated_password and not allow_no_password:
         print("No supported Password mode allowed. Please contact your administrator.")
@@ -223,7 +228,7 @@ def send_transfer_interactive(
 
             transfer_password = questionary.password(selection_message).ask()
             transfer_security_mode = CryptshareTransferSecurityMode(
-                password=transfer_password, mode=SecurityModes.MANUAL
+                password=transfer_password, mode=OneTimePaswordSecurityModes.MANUAL
             )
 
             if transfer_password == "" or transfer_password is None and allow_generated_password:
@@ -261,7 +266,7 @@ def send_transfer_interactive(
         transfer_security_mode = CryptshareTransferSecurityMode(password=transfer_password)
 
     if seleced_security_mode == "None" and allow_no_password:
-        transfer_security_mode = CryptshareTransferSecurityMode(mode=SecurityModes.NONE)
+        transfer_security_mode = CryptshareTransferSecurityMode(mode=OneTimePaswordSecurityModes.NONE)
 
     # Transfer Session is open loop. Options: Add/Remove Files, Change expiration date, send Transfer, abort
     do_send = False
