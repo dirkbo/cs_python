@@ -14,8 +14,8 @@ parentdir = os.path.dirname(os.path.dirname(currentdir))
 sys.path.insert(0, parentdir)
 
 from helpers import (
-    ShellCryptshareValidators,
     ShellCryptshareSender,
+    ShellCryptshareValidators,
     questionary_ask_for_sender,
 )
 from send_transfer import ShellCryptshareTransfer
@@ -182,7 +182,6 @@ def send_transfer_interactive(
     show_generated_pasword = True
     is_valid_password = False
     human_password_rules = cryptshare_client.get_human_readable_password_rules()
-    transfer_policy_settings = transfer_policy.get_settings()
 
     security_modes = transfer_policy.get_allowed_security_modes()
     allow_manual_password = SecurityModes.MANUAL in security_modes
@@ -329,7 +328,7 @@ def send_transfer_interactive(
             questionary.Choice(title="Remove a file", value="RemoveFile"),
             questionary.Choice(title="Change expiration date", value="ChangeExpiration"),
         ]
-        if transfer_policy_settings.get("recipientNotificationEditable", False):
+        if transfer_policy.is_allowed_editing_recipient_notification:
             selection_choices.append(questionary.Choice(title="Set custom Notification subject", value="SetSubject"))
             selection_choices.append(questionary.Choice(title="Set custom Notification message", value="SetMessage"))
 
@@ -395,7 +394,7 @@ def send_transfer_interactive(
             while not valid_transfer_expiration:
                 transfer_expiration = questionary.text(
                     "When should the transfer expire? (maximum {} days)\n".format(
-                        transfer_policy_settings.get("maxRetentionPeriod")
+                        transfer_policy.maximum_retention_time
                     ),
                     default=f"{transfer_expiration}",
                     validate=ShellCryptshareValidators.is_valid_expiration,
@@ -404,13 +403,10 @@ def send_transfer_interactive(
                     transfer_expiration = "2d"
                 print(f"Transfer expiration: {transfer_expiration}")
                 expiration_date = ShellCryptshareValidators.clean_expiration(transfer_expiration)
-                print(transfer_policy_settings)
                 if expiration_date <= datetime.now() + timedelta(hours=23, minutes=59):
                     print("Expiration date must be at least 1 day in the future.")
                     continue
-                if expiration_date < datetime.now() + timedelta(
-                    days=transfer_policy_settings.get("maxRetentionPeriod")
-                ):
+                if expiration_date < datetime.now() + timedelta(days=transfer_policy.maximum_retention_time):
                     valid_transfer_expiration = True
 
         if session_option == "SetMessage":

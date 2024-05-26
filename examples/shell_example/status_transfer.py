@@ -3,8 +3,8 @@ import pprint
 
 from cryptshare import CryptshareClient
 from examples.shell_example.helpers import (
-    ShellCryptshareValidators,
     ShellCryptshareSender,
+    ShellCryptshareValidators,
 )
 
 logger = logging.getLogger(__name__)

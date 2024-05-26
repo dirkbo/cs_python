@@ -28,6 +28,16 @@ class CryptshareTransferPolicy:
         return modes
 
     @property
+    def maximum_retention_time(self) -> int:
+        """Returns the maximum retention time for the transfer"""
+        return self.get_settings().get("maxRetentionPeriod", 0)
+
+    @property
+    def is_allowed_editing_recipient_notification(self) -> bool:
+        """Checks if the recipient notification is editable"""
+        return self.get_settings().get("recipientNotificationEditable", False)
+
+    @property
     def is_allowed(self) -> bool:
         """Checks if the transfer is allowed"""
         if not self._policy:
@@ -39,3 +49,12 @@ class CryptshareTransferPolicy:
         if not self._policy:
             return {}
         return self._policy.get("settings", {})
+
+    @property
+    def policy(self):
+        if not self._policy:
+            return {}
+        return self._policy
+
+    def __repr__(self):
+        return str(self.policy)
