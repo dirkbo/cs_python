@@ -38,7 +38,7 @@ class CryptshareClient(CryptshareApiRequests):
     }
     _client_store = {}
 
-    def __init__(self, server, client_store_path="client_store.json", target_api_version:str= None, ssl_verify=True):
+    def __init__(self, server, client_store_path="client_store.json", target_api_version: str = None, ssl_verify=True):
         logger.info(f"Initialising Cryptshare Client for server: {server}")
         if not CryptshareValidators.is_valid_server_url(server):
             raise ValueError("Invalid Cryptshare server URL")

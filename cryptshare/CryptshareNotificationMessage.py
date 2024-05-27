@@ -25,7 +25,7 @@ class CryptshareNotificationMessage:
         def get_supported_language(language: str) -> str:
             supported = []
             if self.supported_languages is None:
-                supported = ["en","de"]
+                supported = ["en", "de"]
             else:
                 supported = [language_locale.split("-")[0].lower() for language_locale in self.supported_languages]
             if supported and language in supported:
