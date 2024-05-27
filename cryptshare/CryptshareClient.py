@@ -165,15 +165,16 @@ class CryptshareClient(CryptshareApiRequests):
             return True
         return False
 
-    def get_language_packs(self) -> list:
+    def get_language_packs(self, product_id: str = "api.rest") -> list:
         # "GET https://<your-url>/api/products/<product-key>/language-packs"
         path = self.api_path("products") + "api.rest/language-packs"
         logger.info(f"Getting language packs from {path}")
+        temp_headers = self.header.overwrite_header({"X-CS-ProductKey": product_id})
         r = self._request(
             "GET",
             path,
             verify=self.ssl_verify,
-            headers=self.header.request_header,
+            headers=temp_headers,
         )
         return r
 

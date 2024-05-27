@@ -23,7 +23,6 @@ class CryptshareNotificationMessage:
             return default
 
         logger.debug("Detecting language from Notification Message subject and body")
-        # Implement language detection here
         use_text_for_detection = f"{self.body} {self.subject}"
         self.language = default.lower()
 

@@ -37,3 +37,10 @@ class CryptshareHeader:
         logger.info(f"Adding additional other header {other}")
         logger.debug(f"Current headers: {self._general | other}")
         return self._general | other
+
+    def overwrite_header(self, other: dict):
+        logger.info(f"Temporary overwriting headers with {other}")
+        temp_headers = self._general.copy()
+        temp_headers.update(other)
+        logger.debug(f"Temporary headers: {temp_headers}")
+        return temp_headers
