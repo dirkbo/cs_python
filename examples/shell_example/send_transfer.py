@@ -116,8 +116,10 @@ def send_transfer(
         logger.debug(f"Policy response: {transfer_policy}")
         return
 
+    supported_locales = cryptshare_client.get_available_languages("server")
+
     #  Transfer definition
-    notification = CryptshareNotificationMessage(message, subject)
+    notification = CryptshareNotificationMessage(message, subject, supported_languages=supported_locales)
     settings = CryptshareTransferSettings(
         sender,
         notification_message=notification,

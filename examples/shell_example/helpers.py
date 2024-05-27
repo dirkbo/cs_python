@@ -174,6 +174,7 @@ class ShellCryptshareSender(CryptshareSender):
             print("Verification failed.")
             return False
         print(f"Sender {self._email} is verified until {verification['validUntil']}.")
+        cryptshare_client.write_client_store()
         return True
 
 

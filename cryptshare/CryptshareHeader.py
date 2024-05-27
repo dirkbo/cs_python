@@ -4,11 +4,15 @@ logger = logging.getLogger(__name__)
 
 
 class CryptshareHeader:
-    _general = {
-        "X-CS-MajorApiVersion": "1",
-        "X-CS-MinimumMinorApiVersion": "9",
-        "X-CS-ProductKey": "api.rest",
-    }
+    _general: dict = None
+
+    def __init__(self, target_api_version: str, product_key: str = "api.rest") -> None:
+        major_api_version, minimum_minor_api_version = target_api_version.split(".")
+        self._general = dict({
+            "X-CS-MajorApiVersion": major_api_version,
+            "X-CS-MinimumMinorApiVersion": minimum_minor_api_version,
+            "X-CS-ProductKey": product_key
+        })
 
     @property
     def client_id(self) -> str:

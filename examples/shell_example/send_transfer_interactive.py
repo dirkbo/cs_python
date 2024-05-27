@@ -278,7 +278,8 @@ def send_transfer_interactive(
     subject = ""
     message = ""
     files_list = []
-    notification = CryptshareNotificationMessage(message, subject)
+    supported_locales = cryptshare_client.get_available_languages("server")
+    notification = CryptshareNotificationMessage(message, subject, supported_languages=supported_locales)
     settings = CryptshareTransferSettings(
         sender,
         notification_message=notification,
@@ -418,13 +419,13 @@ def send_transfer_interactive(
             message = questionary.text(
                 "What is the Notification message of the transfer? (blank=default Cryptshare Notification message)\n"
             ).ask()
-            notification = CryptshareNotificationMessage(message, subject)
+            notification = CryptshareNotificationMessage(message, subject, supported_languages=supported_locales)
         if session_option == "SetSubject":
             subject = questionary.text(
                 "What is the subject of the transfer? (blank=default Cryptshare subject)\n",
                 validate=ShellCryptshareValidators.is_valid_transfer_subject,
             ).ask()
-            notification = CryptshareNotificationMessage(message, subject)
+            notification = CryptshareNotificationMessage(message, subject, supported_languages=supported_locales)
         settings = CryptshareTransferSettings(
             sender,
             notification_message=notification,

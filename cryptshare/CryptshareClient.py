@@ -21,9 +21,12 @@ from cryptshare.CryptshareValidators import CryptshareValidators
 
 logger = logging.getLogger(__name__)
 
+CURRENT_MAXIMUM_TARGET_API_VERSION = "1.9"
+
 
 class CryptshareClient(CryptshareApiRequests):
-    header = CryptshareHeader()
+    _target_api_version = CURRENT_MAXIMUM_TARGET_API_VERSION
+    header: CryptshareHeader = None
     _sender: CryptshareSender = None
     _server = ""
     _api_paths = {
@@ -35,13 +38,17 @@ class CryptshareClient(CryptshareApiRequests):
     }
     _client_store = {}
 
-    def __init__(self, server, client_store_path="client_store.json", ssl_verify=True):
+    def __init__(self, server, client_store_path="client_store.json", target_api_version:str= None, ssl_verify=True):
         logger.info(f"Initialising Cryptshare Client for server: {server}")
         if not CryptshareValidators.is_valid_server_url(server):
             raise ValueError("Invalid Cryptshare server URL")
         self._server = server
         self.client_store_path = client_store_path
         self.ssl_verify = ssl_verify
+        self._target_api_version = os.getenv("CRYPTSHARE_API_VERSION", self._target_api_version)
+        if target_api_version:
+            self._target_api_version = target_api_version
+        self.header = CryptshareHeader(target_api_version=self._target_api_version)
 
     @property
     def server(self):
@@ -61,7 +68,7 @@ class CryptshareClient(CryptshareApiRequests):
 
     def reset_headers(self):
         logger.debug("Resetting headers")
-        self.header = CryptshareHeader()
+        self.header = self.header = CryptshareHeader(target_api_version=self._target_api_version)
 
     def get_verification_from_store(self, email: str = None):
         if email is None:
@@ -165,18 +172,21 @@ class CryptshareClient(CryptshareApiRequests):
             return True
         return False
 
-    def get_language_packs(self, product_id: str = "api.rest") -> list:
+    def get_language_packs(self, product_key: str = "api.rest") -> list:
         # "GET https://<your-url>/api/products/<product-key>/language-packs"
-        path = self.api_path("products") + "api.rest/language-packs"
+        path = self.api_path("products") + f"{product_key}/language-packs"
         logger.info(f"Getting language packs from {path}")
-        temp_headers = self.header.overwrite_header({"X-CS-ProductKey": product_id})
         r = self._request(
             "GET",
             path,
             verify=self.ssl_verify,
-            headers=temp_headers,
+            headers=self.header.request_header,
         )
         return r
+
+    def get_available_languages(self, product_key: str = "api.rest") -> list:
+        data = self.get_language_packs(product_key)
+        return list(set([lp["locale"] for lp in data]))
 
     def get_terms_of_use(self) -> dict:
         # "GET https://<your-url>/api/products/<product-key>/terms-of-use"
@@ -255,7 +265,6 @@ class CryptshareClient(CryptshareApiRequests):
         try:
             with open(self.server_client_store_path, "w") as outfile:
                 json.dump(self._client_store, outfile, indent=4)
-            outfile.close()
         except IOError:
             logger.warning(f"Failed to write client store to {self.server_client_store_path}")
 
