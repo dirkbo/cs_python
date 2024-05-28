@@ -19,7 +19,7 @@ def status_transfer(
     :param transfer_tracking_id:
     :return:
     """
-    if transfer_tracking_id is not None:
+    if transfer_tracking_id is not None and transfer_tracking_id != "":
         if not ShellCryptshareValidators.is_valid_tracking_id(transfer_tracking_id):
             logger.error(f"Invalid transfer tracking id: {transfer_tracking_id}")
             return
