@@ -4,7 +4,7 @@ logger = logging.getLogger(__name__)
 
 
 class CryptshareHeader:
-    _general: dict = None
+    _general: dict = dict()
 
     def __init__(self, target_api_version: str, product_key: str = "api.rest") -> None:
         major_api_version, minimum_minor_api_version = target_api_version.split(".")
@@ -38,6 +38,10 @@ class CryptshareHeader:
     def request_header(self):
         """Headers needed to access generic api endpoints using request"""
         return self._general
+
+    def update_header(self, other_dict: dict) -> None:
+        logger.debug(f"Updating header with {other_dict}")
+        self._general.update(other_dict)
 
     def extra_header(self, other: dict):
         logger.info(f"Adding additional other header {other}")

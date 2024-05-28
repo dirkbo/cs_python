@@ -239,6 +239,10 @@ class CryptshareClient(CryptshareApiRequests):
         logger.debug("Setting client ID in client headers")
         self._client_store.update({"X-CS-ClientId": r.get("clientId")})
 
+    def set_client_id(self, client_id: str):
+        logger.debug("Setting client ID in client headers")
+        self.header.update_header({"X-CS-ClientId": client_id})
+
     @property
     def server_client_store_path(self):
         client_store = self.client_store_path
