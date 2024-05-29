@@ -109,8 +109,9 @@ class CryptshareClient(CryptshareApiRequests):
 
     def delete_email(self, email: str):
         logger.debug(f"Deleting email {email} from client store")
-        if email in self._client_store:
-            self._client_store.remove(email)
+        hashed_email = hashlib.shake_256(email.encode("utf-8")).hexdigest(16)
+        if hashed_email in self._client_store:
+            self._client_store.remove(hashed_email)
 
     def request_code(self) -> None:
         path = self.api_path("users") + self.sender_email + "/verification/code/email"
@@ -284,7 +285,7 @@ class CryptshareClient(CryptshareApiRequests):
         return r
 
     def get_human_readable_password_rules(self, password_rules: list = None) -> list:
-        """Returning human readable password rules from password rules list
+        """Returning human-readable password rules from password rules list
         If whitespaces are forbidden for whitespacesDeclined
         If alphabetical sequences like "abc" are forbidden for	alphabeticalSequenceDeclined
         If numeric sequences like "123" are forbidden	numericSequenceDeclined
@@ -349,9 +350,9 @@ class CryptshareClient(CryptshareApiRequests):
         )
         return r
 
-    def validate_password(self, password):
+    def validate_password(self, password: str) -> dict:
         path = self.api_path("password")
-        logger.info(f"Validating password for {self.sender_email} from {path}")
+        logger.info(f"Validating password for from {path}")
         r = self._request(
             "POST",
             path,
@@ -361,7 +362,10 @@ class CryptshareClient(CryptshareApiRequests):
         )
         return r
 
-    def get_password(self):
+    def is_valid_password(self, password: str) -> bool:
+        return self.validate_password(password).get("valid", False)
+
+    def get_password(self) -> str:
         path = self.api_path("password")
         logger.info(f"Getting generated password from {path}")
         r = self._request(
@@ -370,7 +374,7 @@ class CryptshareClient(CryptshareApiRequests):
             verify=self.ssl_verify,
             headers=self.header.request_header,
         )
-        return r
+        return r.get("password", None)
 
     def get_policy(self, recipients) -> CryptshareTransferPolicy:
         path = self.api_path("users") + self.sender_email + "/transfer-policy"
@@ -472,7 +476,7 @@ class CryptshareClient(CryptshareApiRequests):
             password=transfer_password, mode=OneTimePaswordSecurityModes.MANUAL
         )
         if transfer_password == "" or transfer_password is None:
-            transfer_password = self.get_password().get("password")
+            transfer_password = self.get_password()
             print(f"Generated Password to receive Files: {transfer_password}")
             transfer_security_mode = CryptshareTransferSecurityMode(password=transfer_password)
         else:

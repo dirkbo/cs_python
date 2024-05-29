@@ -178,7 +178,7 @@ def send_transfer_interactive(
             do_continue = True
 
     # Transfer policy for the given sender and recipients
-    print(f"Transfer Policy:\n{transfer_policy}")
+    logger.info(f"Transfer Policy:\n{transfer_policy}")
 
     #  Password for transfer
     send_password_sms = False
@@ -232,7 +232,7 @@ def send_transfer_interactive(
             )
 
             if transfer_password == "" or transfer_password is None and allow_generated_password:
-                transfer_password = cryptshare_client.get_password().get("password")
+                transfer_password = cryptshare_client.get_password()
                 if not show_generated_pasword:
                     print("Generated Password to receive Files will be sent via SMS.")
                 else:
@@ -254,7 +254,7 @@ def send_transfer_interactive(
                     print("Password to receive Files will be sent via SMS.")
 
     if seleced_security_mode == "Generated" and allow_generated_password:
-        transfer_password = cryptshare_client.get_password().get("password")
+        transfer_password = cryptshare_client.get_password()
         if not show_generated_pasword:
             print("Generated Password to receive Files will be sent via SMS.")
         else:

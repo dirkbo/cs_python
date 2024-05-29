@@ -89,7 +89,7 @@ def send_transfer(
     if transfer_password == "NO_PASSWORD_MODE":
         transfer_security_mode = CryptshareTransferSecurityMode(mode=OneTimePaswordSecurityModes.NONE)
     elif transfer_password == "" or transfer_password is None:
-        transfer_password = cryptshare_client.get_password().get("password")
+        transfer_password = cryptshare_client.get_password()
         if not show_generated_pasword:
             print("Generated Password to receive Files will be sent via SMS.")
         else:
