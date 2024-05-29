@@ -16,6 +16,7 @@ sys.path.insert(0, parentdir)
 
 from receive_transfer import receive_transfer
 from receive_transfer_interactive import receive_transfer_interactive
+from receive_transfer_url import receive_transfer_by_url
 from send_transfer import send_transfer
 from send_transfer_interactive import send_transfer_interactive
 from status_transfer import status_transfer
@@ -48,6 +49,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("-s", "--server", help="Cryptshare Server URL", required=requires_server)
     # Receive a Transfer
     parser.add_argument("--transfer_id", help="Transfer ID of the Transfer ID to RECEIVE a Transfer", required=False)
+    parser.add_argument("--download_url", help="Download URL of the Transfer ID to RECEIVE a Transfer", required=False)
     parser.add_argument("-p", "--password", help="Password of the Transfer to RECEIVE or SEND", required=False)
     parser.add_argument(
         "--zip", action="store_true", default=False, help="RECEIVE the Transfer as a .zip-File.", required=False
@@ -149,6 +151,14 @@ def main() -> None:
         )
         return
     elif inputs.mode == "receive":
+        if inputs.download_url:
+            receive_transfer_by_url(
+                inputs.download_url,
+                download_zip=inputs.zip,
+                download_eml=inputs.eml,
+            )
+            return
+
         recipient_transfer_id = inputs.transfer_id
         password = inputs.password
         save_path = recipient_transfer_id

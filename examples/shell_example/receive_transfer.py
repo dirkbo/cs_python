@@ -1,7 +1,6 @@
 import os
 
 from helpers import ShellCryptshareDownload
-from tqdm import tqdm
 
 from cryptshare import CryptshareClient
 
@@ -13,11 +12,12 @@ def receive_transfer(
     Downloads a transfer from a Cryptshare server.
 
     Parameters:
-    origin (str): The origin of the request.
     dl_server (str): The URL of the Cryptshare server.
     recipient_transfer_id (str): The Transfer ID of the transfer to download.
     password (str): The password for the transfer.
     save_path (str): The path where the downloaded files should be saved.
+    zip (bool): Download the transfer as a zip file.
+    eml (bool): Download the transfer as an eml file (if it contains a confidential message).
 
     Returns:
     None

@@ -54,6 +54,11 @@ class CryptshareTransferSettings:
         # Expiration date format in REST API: "2020-10-09T11:51:46+02:00"
         return self.format_expiration_date()
 
+    @property
+    def expiration_date(self) -> datetime:
+        # Expiration date format in REST API: "2020-10-09T11:51:46+02:00"
+        return self._expiration_date
+
     def format_expiration_date(self) -> str:
         formatted_expiration_date = self._expiration_date.astimezone().strftime("%Y-%m-%dT%H:%M:%S%z")
         expiration_date = formatted_expiration_date[:-2] + ":" + formatted_expiration_date[-2:]
