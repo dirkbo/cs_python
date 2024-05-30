@@ -27,7 +27,10 @@ extend-ignore = [
 [tool.coverage.run]
 source = ["."]
 command_line = "-m unittest discover -s tests"
-omit = ["tests/", "test*.py", "*_interactive.py"]
+omit = [
+    "*_interactive.py"
+    # Interactive scripts are not tested, because they require user input
+]
 relative_files = true
 [tool.coverage.html]
 directory = "tests/coverage_html_report"
