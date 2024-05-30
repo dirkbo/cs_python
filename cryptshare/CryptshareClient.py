@@ -11,18 +11,22 @@ from cryptshare.CryptshareHeader import CryptshareHeader
 from cryptshare.CryptshareNotificationMessage import CryptshareNotificationMessage
 from cryptshare.CryptshareSender import CryptshareSender
 from cryptshare.CryptshareTransfer import CryptshareTransfer
+from cryptshare.CryptshareTransferPolicy import CryptshareTransferPolicy
 from cryptshare.CryptshareTransferSecurityMode import (
     CryptshareTransferSecurityMode,
-    SecurityModes,
+    OneTimePaswordSecurityModes,
 )
 from cryptshare.CryptshareTransferSettings import CryptshareTransferSettings
 from cryptshare.CryptshareValidators import CryptshareValidators
 
 logger = logging.getLogger(__name__)
 
+CURRENT_MAXIMUM_TARGET_API_VERSION = "1.9"
+
 
 class CryptshareClient(CryptshareApiRequests):
-    header = CryptshareHeader()
+    _target_api_version = CURRENT_MAXIMUM_TARGET_API_VERSION
+    header: CryptshareHeader = None
     _sender: CryptshareSender = None
     _server = ""
     _api_paths = {
@@ -34,13 +38,17 @@ class CryptshareClient(CryptshareApiRequests):
     }
     _client_store = {}
 
-    def __init__(self, server, client_store_path="client_store.json", ssl_verify=True):
+    def __init__(self, server, client_store_path="client_store.json", target_api_version: str = None, ssl_verify=True):
         logger.info(f"Initialising Cryptshare Client for server: {server}")
         if not CryptshareValidators.is_valid_server_url(server):
             raise ValueError("Invalid Cryptshare server URL")
         self._server = server
         self.client_store_path = client_store_path
         self.ssl_verify = ssl_verify
+        self._target_api_version = os.getenv("CRYPTSHARE_API_VERSION", self._target_api_version)
+        if target_api_version:
+            self._target_api_version = target_api_version
+        self.header = CryptshareHeader(target_api_version=self._target_api_version)
 
     @property
     def server(self):
@@ -60,7 +68,7 @@ class CryptshareClient(CryptshareApiRequests):
 
     def reset_headers(self):
         logger.debug("Resetting headers")
-        self.header = CryptshareHeader()
+        self.header = self.header = CryptshareHeader(target_api_version=self._target_api_version)
 
     def get_verification_from_store(self, email: str = None):
         if email is None:
@@ -101,8 +109,9 @@ class CryptshareClient(CryptshareApiRequests):
 
     def delete_email(self, email: str):
         logger.debug(f"Deleting email {email} from client store")
-        if email in self._client_store:
-            self._client_store.remove(email)
+        hashed_email = hashlib.shake_256(email.encode("utf-8")).hexdigest(16)
+        if hashed_email in self._client_store:
+            self._client_store.remove(hashed_email)
 
     def request_code(self) -> None:
         path = self.api_path("users") + self.sender_email + "/verification/code/email"
@@ -164,9 +173,9 @@ class CryptshareClient(CryptshareApiRequests):
             return True
         return False
 
-    def get_language_packs(self) -> list:
+    def get_language_packs(self, product_key: str = "api.rest") -> list:
         # "GET https://<your-url>/api/products/<product-key>/language-packs"
-        path = self.api_path("products") + "api.rest/language-packs"
+        path = self.api_path("products") + f"{product_key}/language-packs"
         logger.info(f"Getting language packs from {path}")
         r = self._request(
             "GET",
@@ -175,6 +184,10 @@ class CryptshareClient(CryptshareApiRequests):
             headers=self.header.request_header,
         )
         return r
+
+    def get_available_languages(self, product_key: str = "api.rest") -> list:
+        data = self.get_language_packs(product_key)
+        return list(set([lp["locale"] for lp in data]))
 
     def get_terms_of_use(self) -> dict:
         # "GET https://<your-url>/api/products/<product-key>/terms-of-use"
@@ -227,6 +240,10 @@ class CryptshareClient(CryptshareApiRequests):
         logger.debug("Setting client ID in client headers")
         self._client_store.update({"X-CS-ClientId": r.get("clientId")})
 
+    def set_client_id(self, client_id: str):
+        logger.debug("Setting client ID in client headers")
+        self.header.update_header({"X-CS-ClientId": client_id})
+
     @property
     def server_client_store_path(self):
         client_store = self.client_store_path
@@ -253,7 +270,6 @@ class CryptshareClient(CryptshareApiRequests):
         try:
             with open(self.server_client_store_path, "w") as outfile:
                 json.dump(self._client_store, outfile, indent=4)
-            outfile.close()
         except IOError:
             logger.warning(f"Failed to write client store to {self.server_client_store_path}")
 
@@ -269,7 +285,7 @@ class CryptshareClient(CryptshareApiRequests):
         return r
 
     def get_human_readable_password_rules(self, password_rules: list = None) -> list:
-        """Returning human readable password rules from password rules list
+        """Returning human-readable password rules from password rules list
         If whitespaces are forbidden for whitespacesDeclined
         If alphabetical sequences like "abc" are forbidden for	alphabeticalSequenceDeclined
         If numeric sequences like "123" are forbidden	numericSequenceDeclined
@@ -334,9 +350,9 @@ class CryptshareClient(CryptshareApiRequests):
         )
         return r
 
-    def validate_password(self, password):
+    def validate_password(self, password: str) -> dict:
         path = self.api_path("password")
-        logger.info(f"Validating password for {self.sender_email} from {path}")
+        logger.info(f"Validating password for from {path}")
         r = self._request(
             "POST",
             path,
@@ -346,7 +362,10 @@ class CryptshareClient(CryptshareApiRequests):
         )
         return r
 
-    def get_password(self):
+    def is_valid_password(self, password: str) -> bool:
+        return self.validate_password(password).get("valid", False)
+
+    def get_password(self) -> str:
         path = self.api_path("password")
         logger.info(f"Getting generated password from {path}")
         r = self._request(
@@ -355,9 +374,9 @@ class CryptshareClient(CryptshareApiRequests):
             verify=self.ssl_verify,
             headers=self.header.request_header,
         )
-        return r
+        return r.get("password", None)
 
-    def get_policy(self, recipients):
+    def get_policy(self, recipients) -> CryptshareTransferPolicy:
         path = self.api_path("users") + self.sender_email + "/transfer-policy"
         logger.info(f"Getting policy for {self.sender_email} and  {recipients} from {path}")
         r = self._request(
@@ -367,7 +386,8 @@ class CryptshareClient(CryptshareApiRequests):
             headers=self.header.extra_header({"Content-Type": "application/json"}),
             json={"recipients": recipients},
         )
-        return r
+        p = CryptshareTransferPolicy(r)
+        return p
 
     def download_transfer(self, transfer_id, password) -> CryptshareDownload:
         logger.debug(f"Downloading transfer {transfer_id} from {self._server}")
@@ -452,9 +472,11 @@ class CryptshareClient(CryptshareApiRequests):
             self._sender = sender
 
         # ToDo: show password rules to user, when asking for password
-        transfer_security_mode = CryptshareTransferSecurityMode(password=transfer_password, mode=SecurityModes.MANUAL)
+        transfer_security_mode = CryptshareTransferSecurityMode(
+            password=transfer_password, mode=OneTimePaswordSecurityModes.MANUAL
+        )
         if transfer_password == "" or transfer_password is None:
-            transfer_password = self.get_password().get("password")
+            transfer_password = self.get_password()
             print(f"Generated Password to receive Files: {transfer_password}")
             transfer_security_mode = CryptshareTransferSecurityMode(password=transfer_password)
         else:
@@ -466,11 +488,10 @@ class CryptshareClient(CryptshareApiRequests):
                 logger.debug(f"Passwort rules:\n{password_rules}")
                 return
 
-        policy_response = self.get_policy(all_recipients)
-        valid_policy = policy_response.get("allowed", False)
-        if not valid_policy:
+        transfer_policy = self.get_policy(all_recipients)
+        if not transfer_policy.is_allowed:
             print("Policy not valid.")
-            logger.debug(f"Policy response: {policy_response}")
+            logger.debug(f"Policy response: {transfer_policy}")
             return
 
         #  Transfer definition

@@ -2,9 +2,9 @@ import itertools
 import logging
 
 from helpers import (
-    ShellCryptshareValidators,
     ShellCryptshareSender,
     ShellCryptshareTransfer,
+    ShellCryptshareValidators,
     send_password_with_twilio,
 )
 
@@ -12,7 +12,7 @@ from cryptshare import CryptshareClient
 from cryptshare.CryptshareNotificationMessage import CryptshareNotificationMessage
 from cryptshare.CryptshareTransferSecurityMode import (
     CryptshareTransferSecurityMode,
-    SecurityModes,
+    OneTimePaswordSecurityModes,
 )
 from cryptshare.CryptshareTransferSettings import CryptshareTransferSettings
 
@@ -83,9 +83,13 @@ def send_transfer(
             show_generated_pasword = True
 
     # ToDo: show password rules to user, when asking for password
-    transfer_security_mode = CryptshareTransferSecurityMode(password=transfer_password, mode=SecurityModes.MANUAL)
-    if transfer_password == "" or transfer_password is None:
-        transfer_password = cryptshare_client.get_password().get("password")
+    transfer_security_mode = CryptshareTransferSecurityMode(
+        password=transfer_password, mode=OneTimePaswordSecurityModes.MANUAL
+    )
+    if transfer_password == "NO_PASSWORD_MODE":
+        transfer_security_mode = CryptshareTransferSecurityMode(mode=OneTimePaswordSecurityModes.NONE)
+    elif transfer_password == "" or transfer_password is None:
+        transfer_password = cryptshare_client.get_password()
         if not show_generated_pasword:
             print("Generated Password to receive Files will be sent via SMS.")
         else:
@@ -106,15 +110,16 @@ def send_transfer(
         if send_password_sms:
             print("Password to receive Files will be sent via SMS.")
 
-    policy_response = cryptshare_client.get_policy(all_recipients)
-    valid_policy = policy_response.get("allowed")
-    if not valid_policy:
+    transfer_policy = cryptshare_client.get_policy(all_recipients)
+    if not transfer_policy.is_allowed:
         print("Policy not valid.")
-        logger.debug(f"Policy response: {policy_response}")
+        logger.debug(f"Policy response: {transfer_policy}")
         return
 
+    supported_locales = cryptshare_client.get_available_languages("server")
+
     #  Transfer definition
-    notification = CryptshareNotificationMessage(message, subject)
+    notification = CryptshareNotificationMessage(message, subject, supported_languages=supported_locales)
     settings = CryptshareTransferSettings(
         sender,
         notification_message=notification,

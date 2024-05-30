@@ -4,11 +4,17 @@ logger = logging.getLogger(__name__)
 
 
 class CryptshareHeader:
-    _general = {
-        "X-CS-MajorApiVersion": "1",
-        "X-CS-MinimumMinorApiVersion": "9",
-        "X-CS-ProductKey": "api.rest",
-    }
+    _general: dict = dict()
+
+    def __init__(self, target_api_version: str, product_key: str = "api.rest") -> None:
+        major_api_version, minimum_minor_api_version = target_api_version.split(".")
+        self._general = dict(
+            {
+                "X-CS-MajorApiVersion": major_api_version,
+                "X-CS-MinimumMinorApiVersion": minimum_minor_api_version,
+                "X-CS-ProductKey": product_key,
+            }
+        )
 
     @property
     def client_id(self) -> str:
@@ -33,7 +39,18 @@ class CryptshareHeader:
         """Headers needed to access generic api endpoints using request"""
         return self._general
 
+    def update_header(self, other_dict: dict) -> None:
+        logger.debug(f"Updating header with {other_dict}")
+        self._general.update(other_dict)
+
     def extra_header(self, other: dict):
         logger.info(f"Adding additional other header {other}")
         logger.debug(f"Current headers: {self._general | other}")
         return self._general | other
+
+    def overwrite_header(self, other: dict):
+        logger.info(f"Temporary overwriting headers with {other}")
+        temp_headers = self._general.copy()
+        temp_headers.update(other)
+        logger.debug(f"Temporary headers: {temp_headers}")
+        return temp_headers

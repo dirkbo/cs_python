@@ -7,23 +7,33 @@ logger = logging.getLogger(__name__)
 
 
 class CryptshareNotificationMessage:
-    def __init__(self, body: str = None, subject: str = None, language: str = None) -> None:
+    def __init__(
+        self, body: str = None, subject: str = None, language: str = None, supported_languages: list[str] = None
+    ) -> None:
         logger.debug("Initialising NotificationMessage")
         self.body = body if body else ""
         self.subject = subject if subject else ""
         self.language = language if language else "en"
+        self.supported_languages = supported_languages
         if not language and (body or subject):
             self.detect_language()
 
     def detect_language(self, default="en", supported_languages: list[str] = None) -> None:
+        if supported_languages:
+            self.supported_languages = supported_languages
+
         def get_supported_language(language: str) -> str:
-            if supported_languages and language in supported_languages:
+            supported = []
+            if self.supported_languages is None:
+                supported = ["en", "de"]
+            else:
+                supported = [language_locale.split("-")[0].lower() for language_locale in self.supported_languages]
+            if supported and language in supported:
                 return language
             logging.debug(f"Language {language} not supported. Using default {default}")
             return default
 
         logger.debug("Detecting language from Notification Message subject and body")
-        # Implement language detection here
         use_text_for_detection = f"{self.body} {self.subject}"
         self.language = default.lower()
 

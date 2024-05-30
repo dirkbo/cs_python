@@ -18,11 +18,20 @@ class CryptshareApiRequests:
         params=None,
         stream=False,
         handle_response=True,
+        timeout: int = None,
     ):
         logger.info(f"Sending API request\n {method} {url}")
         logger.debug(f"\n Data: {data}\n Json: {json}\n Headers: {headers}\n Params: {params}")
         resp = requests.request(
-            method, url, json=json, data=data, headers=headers, params=params, verify=verify, stream=stream
+            method,
+            url,
+            json=json,
+            data=data,
+            headers=headers,
+            params=params,
+            verify=verify,
+            stream=stream,
+            timeout=timeout,
         )
         if stream or not handle_response:
             return resp
