@@ -115,7 +115,6 @@ class TestCryptshareValidators(unittest.TestCase):
         self.assertFalse(self.cls.is_valid_transfer_subject("Test~ Subject"))
 
 
-
 class TestCryptshareNotificationMessage(unittest.TestCase):
     def test_notification_message(self):
         from cryptshare.CryptshareNotificationMessage import (
@@ -154,18 +153,22 @@ class TestCryptshareTransferSettings(unittest.TestCase):
         notification = CryptshareNotificationMessage("A subject", "A notification message")
         security_mode = CryptshareTransferSecurityMode(password="password")
         self.assertEqual(security_mode.mode, OneTimePaswordSecurityModes.MANUAL)
-        self.assertEqual(security_mode.data(), {"name": "ONE_TIME_PASSWORD", "config": {"passwordMode": "MANUAL", "password": "password"}})
+        self.assertEqual(
+            security_mode.data(),
+            {"name": "ONE_TIME_PASSWORD", "config": {"passwordMode": "MANUAL", "password": "password"}},
+        )
         security_mode = CryptshareTransferSecurityMode(mode=OneTimePaswordSecurityModes.NONE)
         self.assertEqual(security_mode.mode, OneTimePaswordSecurityModes.NONE)
         self.assertEqual(security_mode.data(), {"name": "ONE_TIME_PASSWORD", "config": {"passwordMode": "NONE"}})
         security_mode = CryptshareTransferSecurityMode(password="")
         self.assertEqual(security_mode.mode, OneTimePaswordSecurityModes.GENERATED)
-        self.assertEqual(security_mode.data(),
-                         {"name": "ONE_TIME_PASSWORD", "config": {"passwordMode": "GENERATED"}})
+        self.assertEqual(security_mode.data(), {"name": "ONE_TIME_PASSWORD", "config": {"passwordMode": "GENERATED"}})
         security_mode = CryptshareTransferSecurityMode(password="password", mode=OneTimePaswordSecurityModes.GENERATED)
         self.assertEqual(security_mode.mode, OneTimePaswordSecurityModes.GENERATED)
-        self.assertEqual(security_mode.data(), {"name": "ONE_TIME_PASSWORD", "config": {"passwordMode": "GENERATED", "password": "password"}})
-
+        self.assertEqual(
+            security_mode.data(),
+            {"name": "ONE_TIME_PASSWORD", "config": {"passwordMode": "GENERATED", "password": "password"}},
+        )
 
         now = datetime.now()
         settings = CryptshareTransferSettings(
@@ -233,7 +236,9 @@ class TestCryptshareClient(unittest.TestCase):
     def test_cryptshare_client(self):
         with self.assertRaises(ValueError):
             CryptshareClient("htp://example.com")
-        client = CryptshareClient(os.getenv("CRYPTSHARE_SERVER", "https://beta.cryptshare.com"), target_api_version="1.9")
+        client = CryptshareClient(
+            os.getenv("CRYPTSHARE_SERVER", "https://beta.cryptshare.com"), target_api_version="1.9"
+        )
         self.assertEqual(client._target_api_version, "1.9")
         self.assertEqual(client.server, os.getenv("CRYPTSHARE_SERVER", "https://beta.cryptshare.com"))
         client.server = os.getenv("CRYPTSHARE_SERVER", "https://beta.cryptshare.com")
@@ -251,8 +256,12 @@ class TestCryptshareClient(unittest.TestCase):
         self.assertTrue(client.exists_client_id())
         self.assertEqual(client.client_store_path, "client_store.json")
         self.assertEqual(client.server_client_store_path, f"client_store_{client.server_hash}.json")
-        self.assertEqual(client.get_verification_from_store(email="example@example.com"),"")
-        client.set_sender("example@example.com", "Test Sender", "+1 234 567890", )
+        self.assertEqual(client.get_verification_from_store(email="example@example.com"), "")
+        client.set_sender(
+            "example@example.com",
+            "Test Sender",
+            "+1 234 567890",
+        )
         self.assertEqual(client.sender_email, "example@example.com")
         self.assertIsInstance(client.get_emails(), list)
 

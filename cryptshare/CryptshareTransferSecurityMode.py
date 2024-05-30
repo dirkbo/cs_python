@@ -21,9 +21,7 @@ class CryptshareTransferSecurityMode:
     _password: str = ""
     name: str = "ONE_TIME_PASSWORD"
 
-    def __init__(
-        self, password: str = "", mode: OneTimePaswordSecurityModes = None
-    ) -> None:
+    def __init__(self, password: str = "", mode: OneTimePaswordSecurityModes = None) -> None:
         logger.debug("Initialising SecurityMode")
         self._password = password
         self._passwordMode = mode
@@ -31,7 +29,6 @@ class CryptshareTransferSecurityMode:
             self._passwordMode = OneTimePaswordSecurityModes.MANUAL
             if password == "":
                 self._passwordMode = OneTimePaswordSecurityModes.GENERATED
-
 
     def data(self) -> dict:
         logger.debug("Returning SecurityMode data")
