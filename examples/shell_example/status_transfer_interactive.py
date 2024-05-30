@@ -1,9 +1,8 @@
 import questionary
-from helpers import ShellCryptshareValidators
+from helpers import ShellCryptshareSender, ShellCryptshareValidators
+from status_transfer import status_transfer
 
 from cryptshare import CryptshareClient
-from examples.shell_example.helpers import ShellCryptshareSender
-from examples.shell_example.status_transfer import status_transfer
 
 
 def status_transfer_interactive(default_server_url, default_sender_email):

@@ -1,11 +1,9 @@
 import logging
 import pprint
 
+from helpers import ShellCryptshareSender, ShellCryptshareValidators
+
 from cryptshare import CryptshareClient
-from examples.shell_example.helpers import (
-    ShellCryptshareSender,
-    ShellCryptshareValidators,
-)
 
 logger = logging.getLogger(__name__)
 

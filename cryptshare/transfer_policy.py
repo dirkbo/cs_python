@@ -1,6 +1,6 @@
 import logging
 
-from cryptshare.CryptshareTransferSecurityMode import OneTimePaswordSecurityModes
+from cryptshare.transfer_security_mode import OneTimePaswordSecurityModes
 
 logger = logging.getLogger(__name__)
 

@@ -1,17 +1,11 @@
-import inspect
 import os
-import sys
 import unittest
-from datetime import datetime, timedelta, timezone
+from datetime import datetime
 
 from dotenv import load_dotenv
 
-# To work from tests folder, parent folder is added to path
-currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
-parentdir = os.path.dirname(currentdir)
-sys.path.insert(0, parentdir)
-
-from cryptshare import CryptshareClient, CryptshareValidators
+from cryptshare import CryptshareClient
+from cryptshare.validators import CryptshareValidators
 
 
 class TestCryptshareValidators(unittest.TestCase):
@@ -117,9 +111,7 @@ class TestCryptshareValidators(unittest.TestCase):
 
 class TestCryptshareNotificationMessage(unittest.TestCase):
     def test_notification_message(self):
-        from cryptshare.CryptshareNotificationMessage import (
-            CryptshareNotificationMessage,
-        )
+        from cryptshare.notification_message import CryptshareNotificationMessage
 
         subject = "A subject"
         text = "A notification message for the recipient of the Transfer"
@@ -139,15 +131,13 @@ class TestCryptshareNotificationMessage(unittest.TestCase):
 
 class TestCryptshareTransferSettings(unittest.TestCase):
     def test_transfer_settings(self):
-        from cryptshare import CryptshareSender
-        from cryptshare.CryptshareNotificationMessage import (
-            CryptshareNotificationMessage,
-        )
-        from cryptshare.CryptshareTransferSecurityMode import (
+        from cryptshare.notification_message import CryptshareNotificationMessage
+        from cryptshare.sender import CryptshareSender
+        from cryptshare.transfer_security_mode import (
             CryptshareTransferSecurityMode,
             OneTimePaswordSecurityModes,
         )
-        from cryptshare.CryptshareTransferSettings import CryptshareTransferSettings
+        from cryptshare.transfer_settings import CryptshareTransferSettings
 
         sender = CryptshareSender("Test Sender", "+1 234 567890", "test@example.com")
         notification = CryptshareNotificationMessage("A subject", "A notification message")

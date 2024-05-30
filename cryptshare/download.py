@@ -1,16 +1,16 @@
 import logging
 import os
 
-from cryptshare import CryptshareClient
-from cryptshare.CryptshareApiRequests import CryptshareApiRequests
+from cryptshare.api_requests import CryptshareApiRequests
+from cryptshare.base_client import CryptshareBaseClient
 
 logger = logging.getLogger(__name__)
 
 
 class CryptshareDownload(CryptshareApiRequests):
-    _cryptshare_client: CryptshareClient = None
+    _cryptshare_client: CryptshareBaseClient = None
 
-    def __init__(self, cryptshare_client: CryptshareClient, transfer_id, password):
+    def __init__(self, cryptshare_client: CryptshareBaseClient, transfer_id, password):
         logger.debug(f"Initialising Cryptshare Download for transfer: {transfer_id}")
         self._cryptshare_client = cryptshare_client
         self.transfer_id = transfer_id

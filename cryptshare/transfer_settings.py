@@ -1,9 +1,9 @@
 import logging
 from datetime import datetime
 
-from cryptshare import CryptshareSender
-from cryptshare.CryptshareNotificationMessage import CryptshareNotificationMessage
-from cryptshare.CryptshareTransferSecurityMode import CryptshareTransferSecurityMode
+from cryptshare.notification_message import CryptshareNotificationMessage
+from cryptshare.sender import CryptshareSender
+from cryptshare.transfer_security_mode import CryptshareTransferSecurityMode
 
 logger = logging.getLogger(__name__)
 

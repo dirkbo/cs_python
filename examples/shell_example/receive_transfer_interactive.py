@@ -1,7 +1,6 @@
 import questionary
 from helpers import ShellCryptshareValidators
-
-from examples.shell_example.receive_transfer import receive_transfer
+from receive_transfer import receive_transfer
 
 
 def receive_transfer_interactive(default_server_url):

@@ -8,10 +8,11 @@ from dateutil import parser as date_parser
 from tqdm import tqdm
 from tqdm.utils import CallbackIOWrapper
 
-from cryptshare import CryptshareClient, CryptshareSender
-from cryptshare.CryptshareDownload import CryptshareDownload
-from cryptshare.CryptshareTransfer import CryptshareTransfer, TransferFile
-from cryptshare.CryptshareValidators import CryptshareValidators
+from cryptshare.client import CryptshareClient
+from cryptshare.download import CryptshareDownload
+from cryptshare.sender import CryptshareSender
+from cryptshare.transfer import CryptshareTransfer, TransferFile
+from cryptshare.validators import CryptshareValidators
 
 logger = logging.getLogger(__name__)
 
@@ -130,6 +131,25 @@ class ShellCryptshareValidators(CryptshareValidators):
         return True
 
 
+class ShellCryptshareTransfer(CryptshareTransfer):
+    def upload_file(self, path: str, cryptshare_client: CryptshareClient = None):
+        self._cryptshare_client = cryptshare_client if cryptshare_client else self._cryptshare_client
+        # Update transfer's cryptshare client, if provided
+
+        if not self._session_is_open:
+            logger.error("Cryptshare Transfer Session is not open, can't upload file")
+            return None
+
+        url = f"{self.get_transfer_session_url()}/files"
+        logger.debug(f"Uploading file {path} to {url}")
+
+        file = ShellTransferFile(path, self.tracking_id, self._cryptshare_client)
+        file.announce_upload()
+        file.upload_file_content()
+        self.files.append(file)
+        return file
+
+
 def questionary_ask_for_sender(default_sender_email: str, default_sender_name: str, default_sender_phone: str) -> tuple:
     if default_sender_email is None or not ShellCryptshareValidators.is_valid_email_or_blank(default_sender_email):
         default_sender_email = ""
@@ -242,25 +262,6 @@ class ShellCryptshareDownload(CryptshareDownload):
                 total=int(file["size"]),
             ):
                 handle.write(data)
-
-
-class ShellCryptshareTransfer(CryptshareTransfer):
-    def upload_file(self, path: str, cryptshare_client: CryptshareClient = None):
-        self._cryptshare_client = cryptshare_client if cryptshare_client else self._cryptshare_client
-        # Update transfer's cryptshare client, if provided
-
-        if not self._session_is_open:
-            logger.error("Cryptshare Transfer Session is not open, can't upload file")
-            return None
-
-        url = f"{self.get_transfer_session_url()}/files"
-        logger.debug(f"Uploading file {path} to {url}")
-
-        file = ShellTransferFile(path, self.tracking_id, self._cryptshare_client)
-        file.announce_upload()
-        file.upload_file_content()
-        self.files.append(file)
-        return file
 
 
 def send_password_with_twilio(tracking_id: str, password: str, recipient_sms: str, recipient_email: str = None) -> None:

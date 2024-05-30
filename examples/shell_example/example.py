@@ -1,19 +1,12 @@
 import argparse
-import inspect
 import json
 import logging
 import logging.config
 import os
-import sys
 
 import questionary
 from dotenv import load_dotenv
-
-# To work from examples folder, parent folder is added to path
-currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
-parentdir = os.path.dirname(os.path.dirname(currentdir))
-sys.path.insert(0, parentdir)
-
+from helpers import ShellCryptshareValidators
 from receive_transfer import receive_transfer
 from receive_transfer_interactive import receive_transfer_interactive
 from receive_transfer_url import receive_transfer_by_url
@@ -22,11 +15,10 @@ from send_transfer_interactive import send_transfer_interactive
 from status_transfer import status_transfer
 from status_transfer_interactive import status_transfer_interactive
 
-from cryptshare import CryptshareClient
-from examples.shell_example.helpers import ShellCryptshareValidators
+from cryptshare.client import CryptshareClient
 
 logger = logging.getLogger(__name__)
-LOGGING_CONFIG_FILE = "examples/shell_example/logging_config.json"
+LOGGING_CONFIG_FILE = "logging_config.json"
 
 
 def setup_logging() -> None:

@@ -14,12 +14,12 @@ currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentfram
 parentdir = os.path.dirname(os.path.dirname(currentdir))
 sys.path.insert(0, parentdir)
 
-from cryptshare.CryptshareClient import CryptshareClient
-from cryptshare.CryptshareNotificationMessage import (
+from cryptshare.client import CryptshareClient
+from cryptshare.notification_message import (
     CryptshareNotificationMessage as NotificationMessage,
 )
-from cryptshare.CryptshareTransferSecurityMode import CryptshareTransferSecurityMode
-from cryptshare.CryptshareTransferSettings import CryptshareTransferSettings
+from cryptshare.transfer_security_mode import CryptshareTransferSecurityMode
+from cryptshare.transfer_settings import CryptshareTransferSettings
 
 logger = logging.getLogger(__name__)
 LOGGING_CONFIG_FILE = "examples/gui_example/logging_config.json"

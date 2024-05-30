@@ -1,6 +1,7 @@
 import logging
 
-from cryptshare import CryptshareClient, CryptshareValidators
+from cryptshare.base_client import CryptshareBaseClient
+from cryptshare.validators import CryptshareValidators
 
 logger = logging.getLogger(__name__)
 
@@ -27,7 +28,7 @@ class CryptshareSender:
         logger.debug("Returning Sender data as dictionary")
         return {"name": self._name, "phone": self._phone, "email": self._email}
 
-    def verify_sender_email_verification(self, cryptshare_client: CryptshareClient):
+    def verify_sender_email_verification(self, cryptshare_client: CryptshareBaseClient):
         """Perform an email verification of the sender. Requires User Input."""
         cryptshare_client.request_code()
         verification_code = input(f"Please enter the verification code sent to your email address ({self._email}):\n")
@@ -43,7 +44,7 @@ class CryptshareSender:
 
     def setup_and_verify_sender(
         self,
-        cryptshare_client: CryptshareClient,
+        cryptshare_client: CryptshareBaseClient,
         email: str = None,
         phone: str = None,
         name: str = None,

@@ -2,16 +2,17 @@ import hashlib
 import logging
 import os
 
-from cryptshare import CryptshareClient, CryptshareSender
-from cryptshare.CryptshareApiRequests import CryptshareApiRequests
-from cryptshare.CryptshareTransferSettings import CryptshareTransferSettings
-from cryptshare.CryptshareValidators import CryptshareValidators
+from cryptshare.api_requests import CryptshareApiRequests
+from cryptshare.base_client import CryptshareBaseClient
+from cryptshare.sender import CryptshareSender
+from cryptshare.transfer_settings import CryptshareTransferSettings
+from cryptshare.validators import CryptshareValidators
 
 logger = logging.getLogger(__name__)
 
 
 class TransferFile(CryptshareApiRequests):
-    _cryptshare_client: CryptshareClient = None
+    _cryptshare_client: CryptshareBaseClient = None
     _location: str = ""
     _file_id: str = ""
     _tracking_id: str = ""
@@ -20,7 +21,7 @@ class TransferFile(CryptshareApiRequests):
     path: str
     checksum: str
 
-    def __init__(self, path: str, session_tracking_id: str, cryptshare_client: CryptshareClient) -> None:
+    def __init__(self, path: str, session_tracking_id: str, cryptshare_client: CryptshareBaseClient) -> None:
         logger.debug(f"Initialising Cryptshare TransferFile object for file: {path}")
         self.size = os.stat(path).st_size
         self.name = os.path.basename(path)
@@ -94,7 +95,7 @@ class TransferFile(CryptshareApiRequests):
 
 
 class CryptshareTransfer(CryptshareApiRequests):
-    _cryptshare_client: CryptshareClient = None
+    _cryptshare_client: CryptshareBaseClient = None
     files = []
     tracking_id: str = ""
     _settings: CryptshareTransferSettings
@@ -109,7 +110,7 @@ class CryptshareTransfer(CryptshareApiRequests):
         cc: list[[dict[str, str]]] = None,
         bcc: list[[dict[str, str]]] = None,
         tracking_id: str = None,
-        cryptshare_client: CryptshareClient = None,
+        cryptshare_client: CryptshareBaseClient = None,
     ) -> None:
         logger.debug("Initialising Cryptshare Transfer object")
         self.cc = cc if cc else []
@@ -123,13 +124,13 @@ class CryptshareTransfer(CryptshareApiRequests):
         self._settings = settings
         self.send = False
 
-    def get_transfer_session_url(self, cryptshare_client: CryptshareClient = None) -> str:
+    def get_transfer_session_url(self, cryptshare_client: CryptshareBaseClient = None) -> str:
         self._cryptshare_client = cryptshare_client if cryptshare_client else self._cryptshare_client
         # Update transfer's cryptshare client, if provided
 
         return f"{self._cryptshare_client.api_path('users')}{self._settings.sender.email}/transfer-sessions/{self.tracking_id}"
 
-    def get_transfer_status_url(self, cryptshare_client: CryptshareClient = None) -> str:
+    def get_transfer_status_url(self, cryptshare_client: CryptshareBaseClient = None) -> str:
         self._cryptshare_client = cryptshare_client if cryptshare_client else self._cryptshare_client
         # Update transfer's cryptshare client, if provided
 
@@ -144,7 +145,7 @@ class CryptshareTransfer(CryptshareApiRequests):
         if self._settings.security_mode.mode == "GENERATED":
             self._generated_password = password
 
-    def get_generated_password(self) -> str:
+    def get_generated_password(self) -> [str, None]:
         """
         Get the generated password for the transfer session if the security mode is set to GENERATED
         :return:
@@ -153,7 +154,7 @@ class CryptshareTransfer(CryptshareApiRequests):
             return self._generated_password
         return None
 
-    def start_transfer_session(self, cryptshare_client: CryptshareClient = None) -> [dict, None]:
+    def start_transfer_session(self, cryptshare_client: CryptshareBaseClient = None) -> [dict, None]:
         """Starts a new transfer session"""
         if self._session_is_open:
             logger.error("Cryptshare Transfer Session is open, can't restart it")
@@ -208,7 +209,7 @@ class CryptshareTransfer(CryptshareApiRequests):
         logger.debug(f"Setting bcc recipients to {recipients}")
         self.bcc = recipients
 
-    def upload_file(self, path: str, cryptshare_client: CryptshareClient = None) -> [TransferFile, None]:
+    def upload_file(self, path: str, cryptshare_client: CryptshareBaseClient = None) -> [TransferFile, None]:
         if not self._session_is_open:
             logger.error("Cryptshare Transfer Session is not open, can't upload file")
             return None
@@ -222,7 +223,7 @@ class CryptshareTransfer(CryptshareApiRequests):
         self.files.append(file)
         return file
 
-    def delete_file(self, file: TransferFile, cryptshare_client: CryptshareClient = None) -> None:
+    def delete_file(self, file: TransferFile, cryptshare_client: CryptshareBaseClient = None) -> None:
         if not self._session_is_open:
             logger.error("Cryptshare Transfer Session is not open, can't upload file")
             return None
@@ -261,7 +262,7 @@ class CryptshareTransfer(CryptshareApiRequests):
         logger.debug("Getting transfer sender and recipient data")
         return {"sender": self.get_sender(), "recipients": self.get_recipients()}
 
-    def get_transfer_settings(self, cryptshare_client: CryptshareClient = None) -> [dict, None]:
+    def get_transfer_settings(self, cryptshare_client: CryptshareBaseClient = None) -> [dict, None]:
         if not self._session_is_open:
             logger.error("Cryptshare Transfer Session is not open, can't upload file")
             return None
@@ -280,7 +281,7 @@ class CryptshareTransfer(CryptshareApiRequests):
         return r
 
     def update_transfer_settings(
-        self, transfer_settings: CryptshareTransferSettings = None, cryptshare_client: CryptshareClient = None
+        self, transfer_settings: CryptshareTransferSettings = None, cryptshare_client: CryptshareBaseClient = None
     ) -> [dict, None]:
         if not self._session_is_open:
             logger.error("Cryptshare Transfer Session is not open, can't change Transfer Settings")
@@ -302,7 +303,7 @@ class CryptshareTransfer(CryptshareApiRequests):
         )
         return r
 
-    def send_transfer(self, cryptshare_client: CryptshareClient = None) -> [dict, None]:
+    def send_transfer(self, cryptshare_client: CryptshareBaseClient = None) -> [dict, None]:
         if not self._session_is_open:
             logger.error("Cryptshare Transfer Session is not open, can't change Transfer Settings")
             return None
@@ -321,7 +322,7 @@ class CryptshareTransfer(CryptshareApiRequests):
         self._session_is_open = False
         return r
 
-    def get_transfer_status(self, cryptshare_client: CryptshareClient = None) -> [dict, None]:
+    def get_transfer_status(self, cryptshare_client: CryptshareBaseClient = None) -> [dict, None]:
         self._cryptshare_client = cryptshare_client if cryptshare_client else self._cryptshare_client
         # Update transfer's cryptshare client, if provided
 

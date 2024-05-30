@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 from dotenv import load_dotenv
 from test_cryptshare import TestCryptshareValidators
 
-from cryptshare import CryptshareValidators
+from cryptshare.validators import CryptshareValidators
 from examples.shell_example.helpers import ShellCryptshareValidators
 
 

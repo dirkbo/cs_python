@@ -1,32 +1,22 @@
-import argparse
-import inspect
 import itertools
 import logging
-import os
-import sys
 from datetime import datetime, timedelta
 
 import questionary
-
-# To work from examples folder, parent folder is added to path
-currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
-parentdir = os.path.dirname(os.path.dirname(currentdir))
-sys.path.insert(0, parentdir)
-
 from helpers import (
     ShellCryptshareSender,
+    ShellCryptshareTransfer,
     ShellCryptshareValidators,
     questionary_ask_for_sender,
 )
-from send_transfer import ShellCryptshareTransfer
 
 from cryptshare import CryptshareClient
-from cryptshare.CryptshareNotificationMessage import CryptshareNotificationMessage
-from cryptshare.CryptshareTransferSecurityMode import (
+from cryptshare.notification_message import CryptshareNotificationMessage
+from cryptshare.transfer_security_mode import (
     CryptshareTransferSecurityMode,
     OneTimePaswordSecurityModes,
 )
-from cryptshare.CryptshareTransferSettings import CryptshareTransferSettings
+from cryptshare.transfer_settings import CryptshareTransferSettings
 
 logger = logging.getLogger(__name__)
 

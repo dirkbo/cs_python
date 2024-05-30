@@ -1,9 +1,29 @@
 [project]
 readme = "README.md"
+
+[tool.poetry]
+name = "cryptshare"
+version = "0.1.0"
+description = "Python wrapper for the Cryptshare REST-API"
+authors = ["Dirk B. <dirkbo@googlemail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+requests = "^2.32.2"
+langdetect = "^1.0.9"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
 [tool.black]
 line-length = 120
+
 [tool.isort]
 profile = "black"
+
 [tool.flake8]
 # Check that this is aligned with your other tools like Black
 max-line-length = 120
@@ -24,6 +44,7 @@ extend-ignore = [
     # https://black.readthedocs.io/en/stable/the_black_code_style/current_style.html#slices
     "E203","E401","E402","E501","F401"
 ]
+
 [tool.coverage.run]
 source = ["."]
 command_line = "-m unittest discover -s tests"
@@ -32,5 +53,6 @@ omit = [
     # Interactive scripts are not tested, because they require user input
 ]
 relative_files = true
+
 [tool.coverage.html]
 directory = "tests/coverage_html_report"
