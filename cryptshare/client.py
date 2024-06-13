@@ -150,8 +150,7 @@ class CryptshareClient(CryptshareBaseClient):
                 tracking_id = list_transfer["trackingId"]
                 transfer = CryptshareTransfer(CryptshareTransferSettings(self._sender), tracking_id=tracking_id)
                 transfer = transfer.get_transfer_status(self)
-                status = {"trackingID": tracking_id, "status": transfer["status"]}
-                transfer_status_list.append(status)
+                transfer_status_list.append({"trackingID": tracking_id, "status": transfer["status"]})
             return transfer_status_list
 
         logger.debug(f"Transfer status for transfer {transfer_tracking_id}\n")
