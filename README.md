@@ -46,24 +46,6 @@ Default Value is "0". When configured, the phone number will be used as default 
 ### CRYPTSHARE_CORS_ORIGIN"
 Default Value is "https://localhost". When configured, the origin will be used as default CORS origin.
 
-## Extra Environment variables
-Only required for sending Password SMS using twilio with the `--sms_recipient` option of the shell example.
-
-### TWILIO_ACCOUNT_SID 
-Optional, Passwords can't be sent by sms if not configured.
-
-Twilio Account access for sending password by SMS. 
-
-### TWILIO_AUTH_TOKEN
-Optional, Passwords can't be sent by sms if not configured.
-
-Twilio Account access for sending password by SMS. 
-
-### TWILIO_SENDER_PHONE
-Optional, Passwords can't be sent by sms if not configured.
-
-Phone Number to send password sms from. Twilio trial accounts can only send SMS from and to verified numbers. 
-
 
 # Examples
 
@@ -75,6 +57,25 @@ Phone Number to send password sms from. Twilio trial accounts can only send SMS 
 Install additional requirements
 
 `pip install -r requirements.txt`
+
+### Extra Environment variables
+Only required for sending Password SMS using twilio with the `--sms_recipient` option of the shell example.
+
+#### TWILIO_ACCOUNT_SID 
+Optional, Passwords can't be sent by sms if not configured.
+
+Twilio Account access for sending password by SMS. 
+
+#### TWILIO_AUTH_TOKEN
+Optional, Passwords can't be sent by sms if not configured.
+
+Twilio Account access for sending password by SMS. 
+
+#### TWILIO_SENDER_PHONE
+Optional, Passwords can't be sent by sms if not configured.
+
+Phone Number to send password sms from. Twilio trial accounts can only send SMS from and to verified numbers. 
+
 
 ### send files from commandline
 
