@@ -18,7 +18,7 @@ from status_transfer_interactive import status_transfer_interactive
 from cryptshare.client import CryptshareClient
 
 logger = logging.getLogger(__name__)
-DEFAULT_LOGGING_CONFIG_FILE = "logging_config.json"
+DEFAULT_LOGGING_CONFIG_FILE = "examples/shell_example/logging_config.json"
 
 
 def setup_logging() -> None:
