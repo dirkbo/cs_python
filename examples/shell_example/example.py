@@ -18,13 +18,20 @@ from status_transfer_interactive import status_transfer_interactive
 from cryptshare.client import CryptshareClient
 
 logger = logging.getLogger(__name__)
-LOGGING_CONFIG_FILE = "logging_config.json"
+DEFAULT_LOGGING_CONFIG_FILE = "examples/shell_example/logging_config.json"
 
 
 def setup_logging() -> None:
-    with open(LOGGING_CONFIG_FILE, "r") as f:
-        config = json.load(f)
-        logging.config.dictConfig(config)
+    logging_config_file = os.getenv("LOGGING_CONFIG_FILE", DEFAULT_LOGGING_CONFIG_FILE)
+    try:
+        with open(logging_config_file, "r") as f:
+            config = json.load(f)
+            logging.config.dictConfig(config)
+    except FileNotFoundError:
+        logging.basicConfig(level=logging.ERROR)
+        logger.warning(
+            f"Logging configuration file {logging_config_file} not found. Using default logging configuration."
+        )
 
 
 def parse_args() -> argparse.Namespace:

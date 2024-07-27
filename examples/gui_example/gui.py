@@ -22,7 +22,7 @@ from cryptshare.transfer_security_mode import CryptshareTransferSecurityMode
 from cryptshare.transfer_settings import CryptshareTransferSettings
 
 logger = logging.getLogger(__name__)
-LOGGING_CONFIG_FILE = "examples/gui_example/logging_config.json"
+DEFAULT_LOGGING_CONFIG_FILE = "examples/gui_example/logging_config.json"
 
 # Please change these parameters accordingly to your setup
 cryptshare_server_url = os.getenv("CRYPTSHARE_SERVER", "https://beta.cryptshare.com")
@@ -246,9 +246,16 @@ def display_transfer_information(transfer_settings):
 
 
 def setup_logging() -> None:
-    with open(LOGGING_CONFIG_FILE, "r") as f:
-        config = json.load(f)
-        logging.config.dictConfig(config)
+    logging_config_file = os.getenv("LOGGING_CONFIG_FILE", DEFAULT_LOGGING_CONFIG_FILE)
+    try:
+        with open(logging_config_file, "r") as f:
+            config = json.load(f)
+            logging.config.dictConfig(config)
+    except FileNotFoundError:
+        logging.basicConfig(level=logging.ERROR)
+        logger.warning(
+            f"Logging configuration file {logging_config_file} not found. Using default logging configuration."
+        )
 
 
 def main() -> None:
