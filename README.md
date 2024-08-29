@@ -1,6 +1,6 @@
 # Prerequisites
 - A running cryptshare server with licensed REST-API is required.
-- Cryptshare REST-API 1.9 (with Server v7.0.0)
+- Cryptshare REST-API 1.10 (with Server v7.1.0)
 - python 3.10
 
 # Getting started
@@ -14,7 +14,7 @@ Change to virtualenv
 
 Install requirements
 
-`pip install dist/cryptshare-0.1.0-py3-none-any.whl`
+`pip install dist/cryptshare-0.2.0-py3-none-any.whl`
 
 ## Development
 Install also development requirements

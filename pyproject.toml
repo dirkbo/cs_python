@@ -3,7 +3,7 @@ readme = "README.md"
 
 [tool.poetry]
 name = "cryptshare"
-version = "0.1.0"
+version = "0.2.0"
 description = "Python wrapper for the Cryptshare REST-API"
 authors = ["Dirk B. <dirkbo@googlemail.com>"]
 readme = "README.md"
