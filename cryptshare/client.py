@@ -158,6 +158,39 @@ class CryptshareClient(CryptshareBaseClient):
         transfer_status = transfer.get_transfer_status(self)
         return transfer_status
 
+    def revoke_active_transfer(
+        self,
+        transfer_tracking_id: str = None,
+        sender_name: str = None,
+        sender_phone: str = None,
+        sender_email: str = None,
+    ):
+        #  Reads existing verifications from the 'store' file if any
+        self.read_client_store()
+
+        #  request client id from server if no client id exists
+        #  Both branches also react on the REST API not licensed
+        if self.exists_client_id() is False:
+            self.request_client_id()
+
+        if self._sender is None:
+            if sender_email is None:
+                print("Sender email is required.")
+                return
+            sender = CryptshareSender(sender_name, sender_phone, sender_email)
+            sender.setup_and_verify_sender(self)
+            self._sender = sender
+
+        if transfer_tracking_id is None:
+            logger.warning("No transfer tracking id provided.")
+            return None
+
+        logger.debug(f"Revoking transfer {transfer_tracking_id}\n")
+        transfer = CryptshareTransfer(
+            CryptshareTransferSettings(self._sender), cryptshare_client=self, tracking_id=transfer_tracking_id
+        )
+        return transfer.revoke_active_transfer()
+
     def get_policy(self, recipients) -> CryptshareTransferPolicy:
         path = self.api_path("users") + self.sender_email + "/transfer-policy"
         logger.info(f"Getting policy for {self.sender_email} and  {recipients} from {path}")

@@ -335,3 +335,29 @@ class CryptshareTransfer(CryptshareApiRequests):
             headers=self._cryptshare_client.header.request_header,
         )
         return r
+
+    def revoke_active_transfer(self, cryptshare_client: CryptshareBaseClient = None) -> [dict, None]:
+        self._cryptshare_client = cryptshare_client if cryptshare_client else self._cryptshare_client
+        # Update transfer's cryptshare client, if provided
+
+        status = self.get_transfer_status()
+
+        if not status.get("status").get("state") == "ACTIVE":
+            logger.warning(f"Transfer {self.tracking_id} is not active, can't revoke it")
+            print(f"Transfer {self.tracking_id} is not active, can't revoke it")
+            return status
+
+        path = self.get_transfer_status_url()
+        logger.debug(f"Revoking active transfer DELETE {path}")
+        r = self._request(
+            "PATCH",
+            path,
+            verify=self._cryptshare_client.ssl_verify,
+            headers=self._cryptshare_client.header.request_header,
+            json={
+                "status": {"state": "DELETED_BY_REVOCATION"},
+                "revocationOptions": {"notifySender": True, "notifyRecipients": True, "message": ""},
+            },
+        )
+        logger.info(f"Transfer {self.tracking_id} has been revoked")
+        return r

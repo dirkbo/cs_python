@@ -10,6 +10,8 @@ from helpers import ShellCryptshareValidators
 from receive_transfer import receive_transfer
 from receive_transfer_interactive import receive_transfer_interactive
 from receive_transfer_url import receive_transfer_by_url
+from revoke_transfer import revoke_transfer
+from revoke_transfer_interactive import revoke_transfer_interactive
 from send_transfer import send_transfer
 from send_transfer_interactive import send_transfer_interactive
 from status_transfer import status_transfer
@@ -42,7 +44,7 @@ def parse_args() -> argparse.Namespace:
         "-m",
         "--mode",
         help="send or receive files",
-        choices=["send", "receive", "status", "interactive"],
+        choices=["send", "receive", "status", "revoke", "interactive"],
         default="interactive",
     )
     parser.add_argument("-s", "--server", help="Cryptshare Server URL", required=requires_server)
@@ -86,7 +88,8 @@ def parse_args() -> argparse.Namespace:
         required=False,
     )
     # Check status of a sent Transfer
-    parser.add_argument("--tracking_id", help="Tracking ID of the Transfer to check STATUS of", required=False)
+    parser.add_argument("--tracking_id", help="Tracking ID of the Transfer to check STATUS or REVOKE", required=False)
+
     args = parser.parse_args()
     return args
 
@@ -99,6 +102,7 @@ def interactive_user_choice():
                 questionary.Choice(title="Send a new Transfer", value="Send", shortcut_key="1"),
                 questionary.Choice(title="Download a Transfer", value="Receive", shortcut_key="2"),
                 questionary.Choice(title="Check the Status of a Transfer", value="Status", shortcut_key="3"),
+                questionary.Choice(title="Revoke a sent transfer", value="Revoke", shortcut_key="4"),
                 questionary.Choice(title="Quit", value="Exit", shortcut_key="q"),
             ],
             use_shortcuts=True,
@@ -175,6 +179,11 @@ def main() -> None:
         client.set_sender(default_sender_email, default_sender_name, default_sender_phone)
         status_transfer(client, inputs.tracking_id)
         return
+    elif inputs.mode == "revoke":
+        client = CryptshareClient(default_server_url)
+        client.set_sender(default_sender_email, default_sender_name, default_sender_phone)
+        revoke_transfer(client, inputs.tracking_id)
+        return
     while True:
         mode = interactive_user_choice()
         if mode == "send":
@@ -185,6 +194,8 @@ def main() -> None:
             receive_transfer_interactive(default_server_url)
         elif mode == "status":
             status_transfer_interactive(default_server_url, default_sender_email)
+        elif mode == "revoke":
+            revoke_transfer_interactive(default_server_url, default_sender_email)
         if mode is False:
             break
 
