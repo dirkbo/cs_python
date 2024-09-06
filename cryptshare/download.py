@@ -37,15 +37,9 @@ class CryptshareDownload(CryptshareApiRequests):
         return path
 
     def download_eml_info(self):
+        """Returns the URL to download the EML file of the transfer"""
         path = f"{self.server}/api/transfers/{self.transfer_id}/eml?password={self.password}"
-        logger.info(f"Downloading eml for transfer: {self.transfer_id} from {path}")
-        r = self._request(
-            "GET",
-            path,
-            verify=self._cryptshare_client.ssl_verify,
-            headers=self._cryptshare_client.header.request_header,
-        )
-        return r
+        return path
 
     def download_files_info(self):
         path = f"{self.server}/api/transfers/{self.transfer_id}/files?password={self.password}"
@@ -83,9 +77,19 @@ class CryptshareDownload(CryptshareApiRequests):
             self.download_transfer_file(file, directory)
 
     def download_zip_file(self, directory):
+        files_info = self.download_files_info()
         url = self.download_zip_info()
-        print(f"url: {self.download_zip_info()}")
-        self.download_file(url, f"{self.transfer_id}.zip", directory)
+        size = 0
+        for file in files_info:
+            size += file["size"]
+        logger.info(f"url: {self.download_zip_info()} size: {size}")
+        self.download_file(url, f"{self.transfer_id}.zip", directory, size=size)
 
     def download_eml_file(self, directory):
-        self.download_file(self.download_eml_info(), f"{self.transfer_id}.eml", directory)
+        files_info = self.download_files_info()
+        size = 0
+        for file in files_info:
+            size += file["size"]
+        path = self.download_eml_info()
+        logger.info(f"Downloading eml for transfer: {self.transfer_id} from {path}")
+        self.download_file(path, f"{self.transfer_id}.eml", directory, size=size)
