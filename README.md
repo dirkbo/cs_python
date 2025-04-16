@@ -1,6 +1,6 @@
 # Prerequisites
 - A running cryptshare server with licensed REST-API is required.
-- Cryptshare REST-API 1.10 (with Server v7.1.0)
+- Cryptshare REST-API 1.11 (with Server v7.2.1)
 - python 3.10
 
 # Getting started

@@ -76,14 +76,33 @@ class CryptshareDownload(CryptshareApiRequests):
         for file in files_info:
             self.download_transfer_file(file, directory)
 
-    def download_zip_file(self, directory):
+    def download_zip_file(self, directory, include_checksum: bool = False, specific_file_ids: list[str] = [], include_only_specific_files: bool= True) -> None:
         files_info = self.download_files_info()
         url = self.download_zip_info()
         size = 0
         for file in files_info:
             size += file["size"]
-        logger.info(f"url: {self.download_zip_info()} size: {size}")
-        self.download_file(url, f"{self.transfer_id}.zip", directory, size=size)
+        logger.info(f"url: {url} size: {size}")
+
+        response = self._request(
+            "GET",
+            url,
+            stream=True,
+            verify=self._cryptshare_client.ssl_verify,
+            headers=self._cryptshare_client.header.request_header,
+            params={
+                "includeChecksum": include_checksum,
+                "specificFileIds": ",".join(specific_file_ids),
+                "includeOnlySpecificFiles": include_only_specific_files,
+            },
+        )
+        logger.info(f"Downloading zip for transfer: {self.transfer_id} from {path}")
+        full_path = os.path.join(directory, filename)
+        os.makedirs(directory, exist_ok=True)
+        with open(full_path, "wb") as handle:
+            for data in response.iter_content():
+                handle.write(data)
+
 
     def download_eml_file(self, directory):
         files_info = self.download_files_info()
