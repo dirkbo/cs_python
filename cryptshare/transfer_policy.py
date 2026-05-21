@@ -50,6 +50,31 @@ class CryptshareTransferPolicy:
             return {}
         return self._policy.get("settings", {})
 
+    @staticmethod
+    def _snake_to_camel(value: str) -> str:
+        parts = value.split("_")
+        if len(parts) <= 1:
+            return value
+        return parts[0] + "".join([part.capitalize() for part in parts[1:]])
+
+    def get_setting(self, setting_name: str, default=None):
+        settings = self.get_settings()
+        if setting_name in settings:
+            return settings.get(setting_name, default)
+        camel_case_setting_name = self._snake_to_camel(setting_name)
+        return settings.get(camel_case_setting_name, default)
+
+    def __getattr__(self, item):
+        settings = self.get_settings()
+        if item in settings:
+            return settings[item]
+
+        camel_case_name = self._snake_to_camel(item)
+        if camel_case_name in settings:
+            return settings[camel_case_name]
+
+        raise AttributeError(f"'{self.__class__.__name__}' object has no attribute '{item}'")
+
     @property
     def policy(self):
         if not self._policy:

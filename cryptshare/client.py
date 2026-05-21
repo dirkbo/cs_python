@@ -19,7 +19,7 @@ from cryptshare.transfer_settings import CryptshareTransferSettings
 
 logger = logging.getLogger(__name__)
 
-TARGET_API_VERSION = "1.9"
+TARGET_API_VERSION = "1.15"
 # Default API Version to use with Cryptshare REST-API
 
 

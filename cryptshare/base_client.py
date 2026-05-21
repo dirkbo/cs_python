@@ -9,7 +9,7 @@ from cryptshare.validators import CryptshareValidators
 
 logger = logging.getLogger(__name__)
 
-CURRENT_MAXIMUM_TARGET_API_VERSION = "1.10"
+CURRENT_MAXIMUM_TARGET_API_VERSION = "1.15"
 
 
 class CryptshareBaseClient(CryptshareApiRequests):

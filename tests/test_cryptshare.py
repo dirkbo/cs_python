@@ -209,6 +209,29 @@ class TestCryptshareTransferSettings(unittest.TestCase):
         )
 
 
+class TestCryptshareTransferPolicy(unittest.TestCase):
+    def test_transfer_policy_settings_access(self):
+        from cryptshare.transfer_policy import CryptshareTransferPolicy
+
+        policy = CryptshareTransferPolicy(
+            {
+                "allowed": True,
+                "settings": {
+                    "maxRetentionPeriod": 7,
+                    "sendUploadSummaryDefault": True,
+                    "someNewSettingFromFutureApi": "enabled",
+                },
+            }
+        )
+
+        self.assertEqual(policy.maximum_retention_time, 7)
+        self.assertTrue(policy.get_setting("sendUploadSummaryDefault"))
+        self.assertTrue(policy.get_setting("send_upload_summary_default"))
+        self.assertEqual(policy.get_setting("some_new_setting_from_future_api"), "enabled")
+        self.assertEqual(policy.send_upload_summary_default, True)
+        self.assertEqual(policy.some_new_setting_from_future_api, "enabled")
+
+
 class TestCryptshareServerSide(unittest.TestCase):
     def test_server_side(self):
         load_dotenv()
@@ -254,6 +277,13 @@ class TestCryptshareClient(unittest.TestCase):
         )
         self.assertEqual(client.sender_email, "example@example.com")
         self.assertIsInstance(client.get_emails(), list)
+
+    def test_default_target_api_version(self):
+        from cryptshare.base_client import CURRENT_MAXIMUM_TARGET_API_VERSION
+
+        client = CryptshareClient("https://example.com")
+        self.assertEqual(CURRENT_MAXIMUM_TARGET_API_VERSION, "1.15")
+        self.assertEqual(client._target_api_version, "1.15")
 
 
 if __name__ == "__main__":
