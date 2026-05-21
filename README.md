@@ -1,6 +1,6 @@
 # Prerequisites
 - A running cryptshare server with licensed REST-API is required.
-- Cryptshare REST-API 1.15
+- Cryptshare REST-API 1.15 (minimum Cryptshare Server version 7.6.0)
 - python 3.10
 
 # Getting started
@@ -25,6 +25,8 @@ Install also development requirements
 The Cryptshare API is documented in the [Cryptshare REST-API documentation](http://documentation.cryptshare.com).
 
 If you want to see what API Calls are used to perform a specific actions, set the log level for `"cryptshare.CryptshareApiRequestHandler"` to `INFO` or `DEBUG`.
+
+This client supports REST API feature additions from versions 1.11 to 1.15, including selective zip downloads and sender/recipient polling APIs.
 
 # Configuration
 
