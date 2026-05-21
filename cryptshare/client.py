@@ -5,6 +5,8 @@ import logging
 import os
 from datetime import datetime
 
+import requests
+
 from cryptshare.base_client import CryptshareBaseClient
 from cryptshare.download import CryptshareDownload
 from cryptshare.notification_message import CryptshareNotificationMessage
@@ -19,7 +21,7 @@ from cryptshare.transfer_settings import CryptshareTransferSettings
 
 logger = logging.getLogger(__name__)
 
-TARGET_API_VERSION = "1.9"
+TARGET_API_VERSION = "1.15"
 # Default API Version to use with Cryptshare REST-API
 
 
@@ -108,16 +110,71 @@ class CryptshareClient(CryptshareBaseClient):
         logger.debug(f"Downloading transfer {transfer_id} from {self._server}")
         return CryptshareDownload(self, transfer_id, password)
 
-    def get_transfers(self) -> dict:
-        path = self.api_path("users") + self.sender_email + "/transfers"
-        logger.info(f"Getting transfers for {self.sender_email} from {path}")
+    @staticmethod
+    def _as_csv(values) -> [str, None]:
+        if values is None:
+            return None
+        if isinstance(values, str):
+            return values
+        return ",".join(values)
+
+    def _build_polling_params(self, fields=None, limit: int = None, offset: int = None) -> [dict, None]:
+        params = dict()
+        fields_csv = self._as_csv(fields)
+        if fields_csv is not None:
+            params["fields"] = fields_csv
+        if limit is not None:
+            params["limit"] = limit
+        if offset is not None:
+            params["offset"] = offset
+        if len(params) == 0:
+            return None
+        return params
+
+    def get_sender_transfers(self, fields=None, limit: int = None, offset: int = None) -> dict:
+        params = self._build_polling_params(fields=fields, limit=limit, offset=offset)
+        path = self.api_path("users") + self.sender_email + "/transfers/sender"
+        logger.info(f"Getting sender transfers for {self.sender_email} from {path}")
+        try:
+            r = self._request(
+                "GET",
+                path,
+                params=params,
+                verify=self.ssl_verify,
+                headers=self.header.request_header,
+            )
+            return r
+        except requests.HTTPError:
+            fallback_path = self.api_path("users") + self.sender_email + "/transfers"
+            logger.info(f"Sender polling endpoint not available, falling back to {fallback_path}")
+            r = self._request(
+                "GET",
+                fallback_path,
+                params=params,
+                verify=self.ssl_verify,
+                headers=self.header.request_header,
+            )
+            return r
+
+    def get_recipient_transfers(
+        self, recipient_email: str = None, fields=None, limit: int = None, offset: int = None
+    ) -> dict:
+        if recipient_email is None:
+            recipient_email = self.sender_email
+        params = self._build_polling_params(fields=fields, limit=limit, offset=offset)
+        path = self.api_path("users") + recipient_email + "/transfers/recipient"
+        logger.info(f"Getting recipient transfers for {recipient_email} from {path}")
         r = self._request(
             "GET",
             path,
+            params=params,
             verify=self.ssl_verify,
             headers=self.header.request_header,
         )
         return r
+
+    def get_transfers(self, fields=None, limit: int = None, offset: int = None) -> dict:
+        return self.get_sender_transfers(fields=fields, limit=limit, offset=offset)
 
     def transfer_status(
         self,
@@ -125,6 +182,11 @@ class CryptshareClient(CryptshareBaseClient):
         sender_name: str = None,
         sender_phone: str = None,
         sender_email: str = None,
+        fields=None,
+        recipient_email: str = None,
+        recipient_mode: bool = False,
+        limit: int = None,
+        offset: int = None,
     ):
         #  Reads existing verifications from the 'store' file if any
         self.read_client_store()
@@ -143,19 +205,29 @@ class CryptshareClient(CryptshareBaseClient):
             self._sender = sender
 
         if transfer_tracking_id is None:
-            all_transfers = self.get_transfers()
+            if recipient_mode:
+                all_transfers = self.get_recipient_transfers(
+                    recipient_email=recipient_email,
+                    fields=fields,
+                    limit=limit,
+                    offset=offset,
+                )
+            else:
+                all_transfers = self.get_transfers(fields=fields, limit=limit, offset=offset)
             logger.debug("Transfer status for all transfers\n")
             transfer_status_list = []
             for list_transfer in all_transfers:
                 tracking_id = list_transfer["trackingId"]
                 transfer = CryptshareTransfer(CryptshareTransferSettings(self._sender), tracking_id=tracking_id)
-                transfer = transfer.get_transfer_status(self)
-                transfer_status_list.append({"trackingID": tracking_id, "status": transfer["status"]})
+                transfer = transfer.get_transfer_status(self, fields=fields)
+                transfer_status_list.append(
+                    {"trackingID": tracking_id, "status": transfer.get("status"), "transfer": transfer}
+                )
             return transfer_status_list
 
         logger.debug(f"Transfer status for transfer {transfer_tracking_id}\n")
         transfer = CryptshareTransfer(CryptshareTransferSettings(self._sender), tracking_id=transfer_tracking_id)
-        transfer_status = transfer.get_transfer_status(self)
+        transfer_status = transfer.get_transfer_status(self, fields=fields)
         return transfer_status
 
     def revoke_active_transfer(
@@ -247,7 +319,7 @@ class CryptshareClient(CryptshareBaseClient):
         )
         if transfer_password == "" or transfer_password is None:
             transfer_password = self.get_password()
-            print(f"Generated Password to receive Files: {transfer_password}")
+            print("Generated password to receive files is available via transfer.get_generated_password().")
             transfer_security_mode = CryptshareTransferSecurityMode(password=transfer_password)
         else:
             passwort_validated_response = self.validate_password(transfer_password)
@@ -255,7 +327,7 @@ class CryptshareClient(CryptshareBaseClient):
             if not valid_password:
                 print("Passwort is not valid.")
                 password_rules = self.get_password_rules()
-                logger.debug(f"Passwort rules:\n{password_rules}")
+                logger.debug(f"Passwort is not valid. Rules received: {len(password_rules)}")
                 return
 
         transfer_policy = self.get_policy(all_recipients)

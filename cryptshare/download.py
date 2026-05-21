@@ -1,5 +1,6 @@
 import logging
 import os
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 from cryptshare.api_requests import CryptshareApiRequests
 from cryptshare.base_client import CryptshareBaseClient
@@ -20,6 +21,21 @@ class CryptshareDownload(CryptshareApiRequests):
     def server(self):
         return self._cryptshare_client.server
 
+    @staticmethod
+    def _as_csv(values) -> [str, None]:
+        if values is None:
+            return None
+        if isinstance(values, str):
+            return values
+        return ",".join(values)
+
+    @staticmethod
+    def _sanitize_url(url: str) -> str:
+        parts = urlsplit(url)
+        query = parse_qsl(parts.query, keep_blank_values=True)
+        sanitized_query = [(key, "***" if key.lower() == "password" else value) for key, value in query]
+        return urlunsplit((parts.scheme, parts.netloc, parts.path, urlencode(sanitized_query), parts.fragment))
+
     def download_transfer_information(self):
         path = f"{self.server}/api/transfers/{self.transfer_id}?password={self.password}"
         logger.info(f"Downloading transfer information for transfer: {self.transfer_id} from {path}")
@@ -31,9 +47,17 @@ class CryptshareDownload(CryptshareApiRequests):
         )
         return r
 
-    def download_zip_info(self):
-        path = f"{self.server}/api/transfers/{self.transfer_id}/zip?password={self.password}"
-        logger.info(f"Downloading zip for transfer: {self.transfer_id} from {path}")
+    def download_zip_info(self, include_file_ids=None, exclude_file_ids=None):
+        params = {"password": self.password}
+        included = self._as_csv(include_file_ids)
+        excluded = self._as_csv(exclude_file_ids)
+        if included:
+            params["includedFileIds"] = included
+        if excluded:
+            params["excludedFileIds"] = excluded
+        query = urlencode(params)
+        path = f"{self.server}/api/transfers/{self.transfer_id}/zip?{query}"
+        logger.info(f"Downloading zip for transfer: {self.transfer_id} from {self._sanitize_url(path)}")
         return path
 
     def download_eml_info(self):
@@ -43,7 +67,7 @@ class CryptshareDownload(CryptshareApiRequests):
 
     def download_files_info(self):
         path = f"{self.server}/api/transfers/{self.transfer_id}/files?password={self.password}"
-        logger.info(f"Downloading files info for transfer: {self.transfer_id} from {path}")
+        logger.info(f"Downloading files info for transfer: {self.transfer_id} from {self._sanitize_url(path)}")
         r = self._request(
             "GET",
             path,
@@ -76,13 +100,13 @@ class CryptshareDownload(CryptshareApiRequests):
         for file in files_info:
             self.download_transfer_file(file, directory)
 
-    def download_zip_file(self, directory):
+    def download_zip_file(self, directory, include_file_ids=None, exclude_file_ids=None):
         files_info = self.download_files_info()
-        url = self.download_zip_info()
+        url = self.download_zip_info(include_file_ids=include_file_ids, exclude_file_ids=exclude_file_ids)
         size = 0
         for file in files_info:
             size += file["size"]
-        logger.info(f"url: {self.download_zip_info()} size: {size}")
+        logger.info(f"url: {self._sanitize_url(url)} size: {size}")
         self.download_file(url, f"{self.transfer_id}.zip", directory, size=size)
 
     def download_eml_file(self, directory):
@@ -91,5 +115,5 @@ class CryptshareDownload(CryptshareApiRequests):
         for file in files_info:
             size += file["size"]
         path = self.download_eml_info()
-        logger.info(f"Downloading eml for transfer: {self.transfer_id} from {path}")
+        logger.info(f"Downloading eml for transfer: {self.transfer_id} from {self._sanitize_url(path)}")
         self.download_file(path, f"{self.transfer_id}.eml", directory, size=size)

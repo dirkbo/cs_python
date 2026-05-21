@@ -322,15 +322,22 @@ class CryptshareTransfer(CryptshareApiRequests):
         self._session_is_open = False
         return r
 
-    def get_transfer_status(self, cryptshare_client: CryptshareBaseClient = None) -> [dict, None]:
+    def get_transfer_status(self, cryptshare_client: CryptshareBaseClient = None, fields=None) -> [dict, None]:
         self._cryptshare_client = cryptshare_client if cryptshare_client else self._cryptshare_client
         # Update transfer's cryptshare client, if provided
 
         path = self.get_transfer_status_url()
         logger.debug(f"Getting transfer status GET {path}")
+        params = None
+        if fields is not None:
+            if isinstance(fields, str):
+                params = {"fields": fields}
+            else:
+                params = {"fields": ",".join(fields)}
         r = self._request(
             "GET",
             path,
+            params=params,
             verify=self._cryptshare_client.ssl_verify,
             headers=self._cryptshare_client.header.request_header,
         )

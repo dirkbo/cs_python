@@ -7,6 +7,14 @@ logger = logging.getLogger(__name__)
 
 
 class CryptshareApiRequests:
+    @staticmethod
+    def _response_error_content(resp) -> dict:
+        try:
+            return json.loads(resp.content)
+        except Exception:
+            message = resp.text.strip() if resp.text else "Unknown error"
+            return {"errorCode": "", "errorMessage": message}
+
     def _request(
         self,
         method,
@@ -50,7 +58,7 @@ class CryptshareApiRequests:
         if resp.status_code == 204:  # or requests.code.ok
             return
         if resp.status_code == 403:
-            content = json.loads(resp.content)
+            content = CryptshareApiRequests._response_error_content(resp)
             if content.get("errorCode") == 3001:
                 logger.warning("403 Error: 3001")
                 err_msg = f"403 Error \n{content.get('errorCode')}\n{content.get('errorMessage')}\nPlease install a valid Cryptshare license on this Cryptshare server where the REST API is licensed."
@@ -60,6 +68,6 @@ class CryptshareApiRequests:
             raise requests.HTTPError(err_msg)
         if resp.status_code in [400, 401, 404, 406, 409, 410, 429, 500, 501]:
             logger.warning(f"{resp.status_code} Error")
-            content = json.loads(resp.content)
+            content = CryptshareApiRequests._response_error_content(resp)
             err_msg = f"{resp.status_code} Error \n{content.get('errorCode')}\n{content.get('errorMessage')}"
             raise requests.HTTPError(err_msg)

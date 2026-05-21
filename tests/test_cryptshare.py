@@ -1,8 +1,10 @@
 import os
 import unittest
 from datetime import datetime
+from unittest.mock import Mock, patch
 
 from dotenv import load_dotenv
+import requests
 
 from cryptshare import CryptshareClient
 from cryptshare.validators import CryptshareValidators
@@ -209,6 +211,109 @@ class TestCryptshareTransferSettings(unittest.TestCase):
         )
 
 
+class TestCryptshareTransferPolicy(unittest.TestCase):
+    def test_transfer_policy_settings_access(self):
+        from cryptshare.transfer_policy import CryptshareTransferPolicy
+
+        policy = CryptshareTransferPolicy(
+            {
+                "allowed": True,
+                "settings": {
+                    "maxRetentionPeriod": 7,
+                    "sendUploadSummaryDefault": True,
+                    "someNewSettingFromFutureApi": "enabled",
+                },
+            }
+        )
+
+        self.assertEqual(policy.maximum_retention_time, 7)
+        self.assertTrue(policy.get_setting("sendUploadSummaryDefault"))
+        self.assertTrue(policy.get_setting("send_upload_summary_default"))
+        self.assertEqual(policy.get_setting("some_new_setting_from_future_api"), "enabled")
+        self.assertEqual(policy.send_upload_summary_default, True)
+        self.assertEqual(policy.some_new_setting_from_future_api, "enabled")
+
+
+class TestCryptshareDownload(unittest.TestCase):
+    def test_download_zip_info_supports_include_exclude_file_ids(self):
+        from urllib.parse import parse_qs, urlparse
+
+        client = CryptshareClient("https://example.com")
+        download = client.download_transfer("1234567890", "secret")
+        path = download.download_zip_info(include_file_ids=["f1", "f2"], exclude_file_ids=["f3"])
+        parsed_query = parse_qs(urlparse(path).query)
+        self.assertEqual(parsed_query.get("password"), ["secret"])
+        self.assertEqual(parsed_query.get("includedFileIds"), ["f1,f2"])
+        self.assertEqual(parsed_query.get("excludedFileIds"), ["f3"])
+
+
+class TestCryptsharePollingApis(unittest.TestCase):
+    def test_sender_polling_uses_new_endpoint_with_fallback(self):
+        client = CryptshareClient("https://example.com")
+        client.set_sender("sender@example.com")
+        with patch.object(
+            client,
+            "_request",
+            side_effect=[requests.HTTPError("404 Error"), [{"trackingId": "20240522-065711-1234567a"}]],
+        ) as request_mock:
+            response = client.get_sender_transfers(fields=["status", "sender.name"], limit=10, offset=2)
+            self.assertEqual(response, [{"trackingId": "20240522-065711-1234567a"}])
+            self.assertEqual(request_mock.call_count, 2)
+            self.assertTrue(request_mock.call_args_list[0].args[1].endswith("/transfers/sender"))
+            self.assertTrue(request_mock.call_args_list[1].args[1].endswith("/transfers"))
+            self.assertEqual(
+                request_mock.call_args_list[0].kwargs.get("params"),
+                {"fields": "status,sender.name", "limit": 10, "offset": 2},
+            )
+
+    def test_recipient_polling_endpoint(self):
+        client = CryptshareClient("https://example.com")
+        client.set_sender("sender@example.com")
+        with patch.object(client, "_request", return_value=[]) as request_mock:
+            client.get_recipient_transfers(
+                recipient_email="recipient@example.com",
+                fields=["status", "sender.name", "sender.phone"],
+                limit=5,
+                offset=1,
+            )
+            self.assertTrue(request_mock.call_args.args[1].endswith("/recipient@example.com/transfers/recipient"))
+            self.assertEqual(
+                request_mock.call_args.kwargs.get("params"),
+                {"fields": "status,sender.name,sender.phone", "limit": 5, "offset": 1},
+            )
+
+    def test_transfer_status_passes_fields_to_transfer_status_endpoint(self):
+        client = CryptshareClient("https://example.com")
+        client.set_sender("sender@example.com")
+        client.set_client_id("client-id")
+        with patch(
+            "cryptshare.transfer.CryptshareTransfer.get_transfer_status",
+            return_value={"status": {"state": "ACTIVE"}},
+        ) as status_mock:
+            result = client.transfer_status(
+                transfer_tracking_id="20240522-065711-1234567a",
+                fields=["status", "sender.name", "sender.phone"],
+            )
+            self.assertEqual(result, {"status": {"state": "ACTIVE"}})
+            self.assertEqual(status_mock.call_args.kwargs.get("fields"), ["status", "sender.name", "sender.phone"])
+
+
+class TestCryptshareApiRequests(unittest.TestCase):
+    def test_handle_response_uses_plain_text_error_message(self):
+        from cryptshare.api_requests import CryptshareApiRequests
+
+        handler = CryptshareApiRequests()
+        response = Mock()
+        response.status_code = 404
+        response.content = b"not-json-message"
+        response.text = "Transfer no longer exists"
+        response.headers = {}
+
+        with self.assertRaises(requests.HTTPError) as exc:
+            handler._handle_response(response)
+        self.assertIn("Transfer no longer exists", str(exc.exception))
+
+
 class TestCryptshareServerSide(unittest.TestCase):
     def test_server_side(self):
         load_dotenv()
@@ -254,6 +359,13 @@ class TestCryptshareClient(unittest.TestCase):
         )
         self.assertEqual(client.sender_email, "example@example.com")
         self.assertIsInstance(client.get_emails(), list)
+
+    def test_default_target_api_version(self):
+        from cryptshare.base_client import CURRENT_MAXIMUM_TARGET_API_VERSION
+
+        client = CryptshareClient("https://example.com")
+        self.assertEqual(CURRENT_MAXIMUM_TARGET_API_VERSION, "1.15")
+        self.assertEqual(client._target_api_version, "1.15")
 
 
 if __name__ == "__main__":
